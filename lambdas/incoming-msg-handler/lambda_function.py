@@ -3,6 +3,7 @@ import json
 
 def lambda_handler(event, context):
     print(event)
+    print("check CD for lambda updates")
     print(event['Records'])
     """
     [{'EventSource': 'aws:sns', 
