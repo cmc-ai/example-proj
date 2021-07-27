@@ -30,3 +30,9 @@ def lambda_handler(event, context):
         if record.get('Sns'):
             response_msg = json.loads(record['Sns']['Message'])
             print(f"Response message from {response_msg['destinationNumber']}: {response_msg['messageKeyword']} {response_msg['messageBody']}")
+
+            # extract state from DynamoDB by originationNumber,destinationNumber
+
+            # push to SQS {originationNumber, destinationNumber, messageKeyword, messageBody}
+
+
