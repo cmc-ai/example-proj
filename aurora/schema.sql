@@ -1,65 +1,65 @@
+-- Drops
+DROP TABLE IF EXISTS Client;
+DROP TABLE IF EXISTS ClientFundingAccount;
+DROP TABLE IF EXISTS Debt;
+DROP TABLE IF EXISTS Borrower;
+DROP TABLE IF EXISTS BorrowerFundingAccount;
+DROP TABLE IF EXISTS DebtPayment;
+DROP TABLE IF EXISTS DebtPaymentLink;
+DROP TABLE IF EXISTS Journey;
+DROP TABLE IF EXISTS Chatbot;
+DROP TABLE IF EXISTS JourneyEntryActivity;
+DROP TABLE IF EXISTS JourneyDebtStatusDefinition;
+DROP TABLE IF EXISTS JourneyDebtStatus;
+DROP TABLE IF EXISTS JourneyExeActivity;
+
+--SELECT *
+--FROM pg_catalog.pg_tables;
+
 --- Clients
 
 CREATE TABLE IF NOT EXISTS Client (
-    id          int NOT NULL AUTO_INCREMENT,
+    id          SERIAL,
     username    char(50) NOT NULL,
     password    char(50) NOT NULL,
-    token       char(200),  -- ???
     firstName   char(50),
     lastName    char(50),
     phoneNum    char(20),
     email       char(50),
     organization        char(50),
-    createDate  DATETIME,
-    lastUpdateDate DATETIME,
+    -- Journey conf
+    linkExpMinutes      int,
+    gapBetweenJourneysDays  int,
+    -- Chatbot conf
+
+    createDate  timestamp,
+    lastUpdateDate timestamp,
 
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS ClientFundingAccount (
-    id              int NOT NULL AUTO_INCREMENT,
+    id              SERIAL,
     clientId        int NOT NULL,
     accountType     char(20) NOT NULL,
     summary         char(50) NOT NULL,
     paymentProcessor    char(200),
     token           char(200),
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS APICall (
-    id              int NOT NULL AUTO_INCREMENT,  -- int? bigint?
+    id              SERIAL,  -- int? bigint?
     clientId        int NOT NULL,
-    callDateTime    DATETIME NOT NULL,
+    callDateTime    timestamp NOT NULL,
     method          char(10),
     url             char(100),
     payload         char(500),
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
-
-    PRIMARY KEY (id)
-);
-
-CREATE TABLE IF NOT EXISTS JorneyConfiguration (
-    id              int NOT NULL AUTO_INCREMENT,
-    clientId        int NOT NULL,
-    linkExpMinutes  int,
-    gapBetweenJourneysDays  int,
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
-
-    PRIMARY KEY (id)
-);
-
-CREATE TABLE IF NOT EXISTS ChatbotConfiguration (
-    id              int NOT NULL AUTO_INCREMENT,
-    clientId        int NOT NULL,
-    -- config fields ?
-
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
 );
@@ -67,22 +67,23 @@ CREATE TABLE IF NOT EXISTS ChatbotConfiguration (
 --- Borrowers
 
 CREATE TABLE IF NOT EXISTS Debt (
-    id          int NOT NULL AUTO_INCREMENT,
+    id          SERIAL,
     clientId    int NOT NULL,
     debtTypeId  int,
     originalBalance     DECIMAL(12,2) NOT NULL,
     outstandingBalance  DECIMAL(12,2) NOT NULL,
     totalPayment        DECIMAL(12,2),
     discount            DECIMAL(12,2),
+    description         TEXT
 
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS Borrower (
-    id          int NOT NULL AUTO_INCREMENT,
+    id          SERIAL,
     debtId      int NOT NULL,
     firstName   char(50) NOT NULL,
     lastName    char(50) NOT NULL,
@@ -90,31 +91,31 @@ CREATE TABLE IF NOT EXISTS Borrower (
     channelType char(50) NOT NULL,
     phoneNum    char(20),
     email       char(50),
+    timezone    char(50),
 
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS BorrowerFundingAccount (
-    id              int NOT NULL AUTO_INCREMENT,
+    id              SERIAL,
     borrowerId      int NOT NULL,
     accountType char(20) NOT NULL,
     summary     char(50) NOT NULL,
-    debtLevel   int,
     paymentProcessor char(200),
     token       char(200),
-    createDate  DATETIME,
-    lastUpdateDate  DATETIME,
+    createDate  timestamp,
+    lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS DebtPayment (  -- Debt Activity
-    id                  int NOT NULL AUTO_INCREMENT,
+    id                  SERIAL,
     debtId              int NOT NULL,
-    paymentDateTime     DATETIME NOT NULL,
+    paymentDateTime     timestamp NOT NULL,
     amount              DECIMAL(12,2) NOT NULL,
     paymentStatus       char(20) NOT NULL,
     fundingAccSummary   char(50) NOT NULL,
@@ -124,20 +125,20 @@ CREATE TABLE IF NOT EXISTS DebtPayment (  -- Debt Activity
     vendorTransId       char(200),
     statusReason        TEXT,
     accountType         CHAR(50) NOT NULL,
-    createDate          DATETIME,
-    lastUpdateDate      DATETIME,
+    createDate          timestamp,
+    lastUpdateDate      timestamp,
 
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS DebtPaymentLink (
-    id                  int NOT NULL AUTO_INCREMENT,
+    id                  SERIAL,
     debtId              int NOT NULL,
     url                 char(100),
-    expirationDateTime  DATETIME,
+    expirationDateTime  timestamp,
 
-    createDate          DATETIME,
-    lastUpdateDate      DATETIME,
+    createDate          timestamp,
+    lastUpdateDate      timestamp,
 
     PRIMARY KEY (id)
 );
@@ -145,52 +146,72 @@ CREATE TABLE IF NOT EXISTS DebtPaymentLink (
 -- Jorney & ChatBot
 
 CREATE TABLE IF NOT EXISTS Journey (
-    id          int NOT NULL AUTO_INCREMENT,
+    id          SERIAL,
     awsId       CHAR(50),
-    jorneyConfigurationId int,
+    clientId    int,
 
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS Chatbot (                        -- where to use ?
-    id                      int NOT NULL AUTO_INCREMENT,
-    awsId                   CHAR(50),
-    chatbotConfigurationId  int,
+    id              SERIAL,
+    awsId           CHAR(50),
+    clientId        int,
 
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS JourneyEntryActivity (
-    id          int NOT NULL AUTO_INCREMENT,
+    id          SERIAL,
     journeyId   int NOT NULL,
     debtId      int NOT NULL,
-    entryDateTime   DATETIME NOT NULL,
-    exitDateTime    DATETIME,
-    isResponded     boolean,    -- JourneyDebtStatus
-    hasPaid         boolean,
+    entryDateTime   timestamp NOT NULL,
+    exitDateTime    timestamp,
 
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
+
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS JourneyDebtStatusDefinition (
+    id          SERIAL,
+    statusName  char(50),
+
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
+
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS JourneyDebtStatus (
+    id          SERIAL,
+    journeyEntryActivityId        int,
+    journeyDebtStatusDefinitionId   int,
+    statusValue                     char(50),
+
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS JourneyExeActivity (
-    id          int NOT NULL AUTO_INCREMENT,
+    id          SERIAL,
     journeyId   int NOT NULL,
     debtId      int NOT NULL,
     journeyEntryActivityId      int NOT NULL,
-    entryDateTime   DATETIME NOT NULL,
+    entryDateTime   timestamp NOT NULL,
     chatSessionID   CHAR(200),  -- ???
 
-    createDate      DATETIME,
-    lastUpdateDate  DATETIME,
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
 );
@@ -226,14 +247,18 @@ ALTER TABLE DebtPayment
 ADD FOREIGN KEY (debtId) REFERENCES Debt(id) ON DELETE CASCADE;
 
 ALTER TABLE Journey
-ADD FOREIGN KEY (jorneyConfigurationId) REFERENCES JorneyConfiguration(id) ON DELETE CASCADE;
+ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE;
 
 ALTER TABLE Chatbot
-ADD FOREIGN KEY (chatbotConfigurationId) REFERENCES ChatbotConfiguration(id) ON DELETE CASCADE;
+ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE;
 
 ALTER TABLE JourneyEntryActivity
 ADD FOREIGN KEY (debtId) REFERENCES Debt(id) ON DELETE CASCADE,
 ADD FOREIGN KEY (journeyId) REFERENCES Journey(id) ON DELETE CASCADE;
+
+ALTER TABLE JourneyDebtStatus
+ADD FOREIGN KEY (journeyEntryActivityId) REFERENCES JourneyEntryActivity(id) ON DELETE CASCADE,
+ADD FOREIGN KEY (journeyDebtStatusDefinitionId) REFERENCES JourneyDebtStatusDefinition(id) ON DELETE CASCADE;
 
 ALTER TABLE JourneyExeActivity
 ADD FOREIGN KEY (debtId) REFERENCES Debt(id) ON DELETE CASCADE,
