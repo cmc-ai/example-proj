@@ -1,19 +1,19 @@
 -- Drops
-DROP TABLE IF EXISTS Client;
-DROP TABLE IF EXISTS ClientFundingAccount;
-DROP TABLE IF EXISTS ClientPortfolio;
-DROP TABLE IF EXISTS ClientConfiguration;
-DROP TABLE IF EXISTS Debt;
-DROP TABLE IF EXISTS Borrower;
-DROP TABLE IF EXISTS BorrowerFundingAccount;
-DROP TABLE IF EXISTS DebtPayment;
-DROP TABLE IF EXISTS DebtPaymentLink;
-DROP TABLE IF EXISTS Journey;
-DROP TABLE IF EXISTS Chatbot;
-DROP TABLE IF EXISTS JourneyEntryActivity;
-DROP TABLE IF EXISTS JourneyDebtStatusDefinition;
-DROP TABLE IF EXISTS JourneyDebtStatus;
-DROP TABLE IF EXISTS JourneyExeActivity;
+DROP TABLE IF EXISTS Client CASCADE;
+DROP TABLE IF EXISTS ClientFundingAccount CASCADE;
+DROP TABLE IF EXISTS ClientPortfolio CASCADE;
+DROP TABLE IF EXISTS ClientConfiguration CASCADE;
+DROP TABLE IF EXISTS Debt CASCADE;
+DROP TABLE IF EXISTS Borrower CASCADE;
+DROP TABLE IF EXISTS BorrowerFundingAccount CASCADE;
+DROP TABLE IF EXISTS DebtPayment CASCADE;
+DROP TABLE IF EXISTS DebtPaymentLink CASCADE;
+DROP TABLE IF EXISTS Journey CASCADE;
+DROP TABLE IF EXISTS Chatbot CASCADE;
+DROP TABLE IF EXISTS JourneyEntryActivity CASCADE;
+DROP TABLE IF EXISTS JourneyDebtStatusDefinition CASCADE;
+DROP TABLE IF EXISTS JourneyDebtStatus CASCADE;
+DROP TABLE IF EXISTS JourneyExeActivity CASCADE;
 
 --SELECT *
 --FROM pg_catalog.pg_tables;
@@ -89,12 +89,11 @@ CREATE TABLE IF NOT EXISTS Debt (
     id                  SERIAL,
     clientId            int NOT NULL,
     clientPortfolioId   int,
-    debtTypeId          int,
     originalBalance     DECIMAL(12,2) NOT NULL,
     outstandingBalance  DECIMAL(12,2) NOT NULL,
     totalPayment        DECIMAL(12,2),
     discount            DECIMAL(12,2),
-    description         TEXT
+    description         TEXT,
 
     createDate      timestamp,
     lastUpdateDate  timestamp,
@@ -163,7 +162,7 @@ CREATE TABLE IF NOT EXISTS DebtPaymentLink (
     PRIMARY KEY (id)
 );
 
--- Jorney & ChatBot
+-- Journey & ChatBot
 
 CREATE TABLE IF NOT EXISTS Journey (
     id          SERIAL,
@@ -212,7 +211,7 @@ CREATE TABLE IF NOT EXISTS JourneyDebtStatusDefinition (
 
 CREATE TABLE IF NOT EXISTS JourneyDebtStatus (
     id          SERIAL,
-    journeyEntryActivityId        int,
+    journeyEntryActivityId          int,
     journeyDebtStatusDefinitionId   int,
     statusValue                     char(50),
 
@@ -250,15 +249,8 @@ ADD FOREIGN KEY (clientPortfolioId) REFERENCES ClientPortfolio(id) ON DELETE CAS
 ALTER TABLE APICall
 ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE;
 
-ALTER TABLE JorneyConfiguration
-ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE;
-
-ALTER TABLE ChatbotConfiguration
-ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE;
-
 ALTER TABLE Debt
 ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE,
-ADD FOREIGN KEY (debtTypeId) REFERENCES DebtType(id) ON DELETE CASCADE,
 ADD FOREIGN KEY (clientPortfolioId) REFERENCES ClientPortfolio(id) ON DELETE CASCADE;
 
 ALTER TABLE Borrower
