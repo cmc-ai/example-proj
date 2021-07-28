@@ -1,6 +1,8 @@
 -- Drops
 DROP TABLE IF EXISTS Client;
 DROP TABLE IF EXISTS ClientFundingAccount;
+DROP TABLE IF EXISTS ClientPortfolio;
+DROP TABLE IF EXISTS ClientConfiguration;
 DROP TABLE IF EXISTS Debt;
 DROP TABLE IF EXISTS Borrower;
 DROP TABLE IF EXISTS BorrowerFundingAccount;
@@ -27,10 +29,6 @@ CREATE TABLE IF NOT EXISTS Client (
     phoneNum    char(20),
     email       char(50),
     organization        char(50),
-    -- Journey conf
-    linkExpMinutes      int,
-    gapBetweenJourneysDays  int,
-    -- Chatbot conf
 
     createDate  timestamp,
     lastUpdateDate timestamp,
@@ -51,6 +49,27 @@ CREATE TABLE IF NOT EXISTS ClientFundingAccount (
     PRIMARY KEY (id)
 );
 
+CREATE TABLE IF NOT EXISTS ClientPortfolio (
+    id              SERIAL,
+    clientId        int NOT NULL,
+    portfolioName   char(50),
+    createDate      timestamp,
+    lastUpdateDate  timestamp,
+
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS ClientConfiguration (
+    id                      SERIAL,
+    clientPortfolioId       int NOT NULL,
+    linkExpMinutes          int,
+    gapBetweenJourneysDays  int,
+    createDate          timestamp,
+    lastUpdateDate      timestamp,
+
+    PRIMARY KEY (id)
+);
+
 CREATE TABLE IF NOT EXISTS APICall (
     id              SERIAL,  -- int? bigint?
     clientId        int NOT NULL,
@@ -67,9 +86,10 @@ CREATE TABLE IF NOT EXISTS APICall (
 --- Borrowers
 
 CREATE TABLE IF NOT EXISTS Debt (
-    id          SERIAL,
-    clientId    int NOT NULL,
-    debtTypeId  int,
+    id                  SERIAL,
+    clientId            int NOT NULL,
+    clientPortfolioId   int,
+    debtTypeId          int,
     originalBalance     DECIMAL(12,2) NOT NULL,
     outstandingBalance  DECIMAL(12,2) NOT NULL,
     totalPayment        DECIMAL(12,2),
@@ -221,6 +241,12 @@ CREATE TABLE IF NOT EXISTS JourneyExeActivity (
 ALTER TABLE ClientFundingAccount
 ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE;
 
+ALTER TABLE ClientPortfolio
+ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE;
+
+ALTER TABLE ClientConfiguration
+ADD FOREIGN KEY (clientPortfolioId) REFERENCES ClientPortfolio(id) ON DELETE CASCADE;
+
 ALTER TABLE APICall
 ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE;
 
@@ -232,7 +258,8 @@ ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE;
 
 ALTER TABLE Debt
 ADD FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE CASCADE,
-ADD FOREIGN KEY (debtTypeId) REFERENCES DebtType(id) ON DELETE CASCADE;
+ADD FOREIGN KEY (debtTypeId) REFERENCES DebtType(id) ON DELETE CASCADE,
+ADD FOREIGN KEY (clientPortfolioId) REFERENCES ClientPortfolio(id) ON DELETE CASCADE;
 
 ALTER TABLE Borrower
 ADD FOREIGN KEY (debtId) REFERENCES Debt(id) ON DELETE CASCADE;
