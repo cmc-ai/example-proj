@@ -1,0 +1,1 @@
+aws pinpoint create-import-job --application-id 34e7ff51c4824c079b9ab87a6a530c2b --import-job-request S3Url=s3://test-katabat/pinpoint/test_segment.json,RoleArn=arn:aws:iam::630063752049:role/PinpointSegmentImport,Format=JSON,SegmentId=e32b3a5e42eb4651b03d8a0af006b553
