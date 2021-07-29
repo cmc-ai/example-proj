@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS Client (
     id          SERIAL,
     username    char(50) NOT NULL,
     password    char(50) NOT NULL,
+    token       char(200),
     firstName   char(50),
     lastName    char(50),
     phoneNum    char(20),
