@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS Borrower (
     phoneNum    char(20),
     email       char(50),
     timezone    char(50),
+    country     char(10),
 
     createDate      timestamp,
     lastUpdateDate  timestamp,
