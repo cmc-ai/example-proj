@@ -1,9 +1,30 @@
 import json
+import os
+
+import boto3
+
+MAX_BATCH_SIZE = 10
+SQS_QUEUE_NAME = os.getenv('SQS_QUEUE_NAME')
+sqs_resource = boto3.resource('sqs')
+
+
+def write_batch_sqs(messages: list):
+    queue = sqs_resource.get_queue_by_name(QueueName=SQS_QUEUE_NAME)
+    batches = [messages[x:x + MAX_BATCH_SIZE] for x in range(0, len(messages), MAX_BATCH_SIZE)]
+
+    for batch in batches:
+        entries = []
+        for message in batch:
+            entries.append({
+                'Id': str(len(entries) + 1),
+                'MessageBody': json.dumps(message)
+            })
+
+        response = queue.send_messages(Entries=entries)
+        print(f'PUSH_TO_QUEUE RESPONSE: {response}')
 
 
 def lambda_handler(event, context):
-    print(event)
-    print("check CD for lambda updates")
     print(event['Records'])
     """
     [{'EventSource': 'aws:sns', 
@@ -25,14 +46,25 @@ def lambda_handler(event, context):
             }
     }]
     """
+    messages = []
 
     for record in event['Records']:
         if record.get('Sns'):
             response_msg = json.loads(record['Sns']['Message'])
-            print(f"Response message from {response_msg['destinationNumber']}: {response_msg['messageKeyword']} {response_msg['messageBody']}")
+            originationNumber = response_msg['originationNumber']
+            destinationNumber = response_msg['destinationNumber']
+            messageKeyword = response_msg['messageKeyword']
+            messageBody = response_msg['messageBody']
+            print(f"Response message from {destinationNumber}: {messageKeyword} {messageBody}")
 
-            # extract state from DynamoDB by originationNumber,destinationNumber
+            # TODO: extract state from DynamoDB by originationNumber,destinationNumber
 
-            # push to SQS {originationNumber, destinationNumber, messageKeyword, messageBody}
+            messages.append({
+                'originationNumber': originationNumber,
+                'destinationNumber': destinationNumber,
+                'messageKeyword': messageKeyword,
+                'messageBody': messageBody
+                # some DynamoDB data
+            })
 
-
+    write_batch_sqs(messages)
