@@ -4,10 +4,6 @@ INSERT INTO Client
 VALUES
 	('client1', 'p@ssword', 'asdfasdf', 'Name', 'Surname', '88005553535', 'manager@bank.com', 'TheBank', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
---INSERT INTO ClientFundingAccount
---    (clientId, accountType, summary, paymentProcessor, token, createDate, lastUpdateDate)
---VALUES
---    (1, 'loan', 'summary', 'gggg', 'asdfasdf', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO ClientPortfolio (clientId, portfolioName, createDate, lastUpdateDate )
 VALUES (1, 'first_portfolio', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -26,5 +22,12 @@ VALUES
 INSERT INTO Borrower
     (debtId, firstName, lastName, isPrimary, channelType, phoneNum, email,  createDate, lastUpdateDate)
 VALUES
-    (1, 'Stan', 'Nikitin', true, 'SMS', '', '',  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+    (1, 'Stan', 'Nikitin', true, 'SMS', '+16502546320', '',  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
+
+-- Journey Activity
+INSERT INTO Journey (awsId, clientId,  createDate, lastUpdateDate)
+VALUES ('', 1,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT INTO JourneyEntryActivity (journeyId, debtId, entryDateTime, createDate, lastUpdateDate)
+VALUES (1, 1,  CURRENT_TIMESTAMP,  CURRENT_TIMESTAMP,  CURRENT_TIMESTAMP);

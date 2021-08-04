@@ -15,9 +15,6 @@ DROP TABLE IF EXISTS JourneyDebtStatusDefinition CASCADE;
 DROP TABLE IF EXISTS JourneyDebtStatus CASCADE;
 DROP TABLE IF EXISTS JourneyExeActivity CASCADE;
 
---SELECT *
---FROM pg_catalog.pg_tables;
-
 --- Clients
 
 CREATE TABLE IF NOT EXISTS Client (
