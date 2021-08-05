@@ -1,3 +1,1 @@
-{"Id":1,"ChannelType":"SMS","Address":"+79178835351","Location":{"Country":"RU"},"User":{"UserId":"test-user-id-1"}}
-{"Id":2,"ChannelType":"SMS","Address":"+79874038696","Location":{"Country":"RU"},"User":{"UserId":"test-user-id-2"}}
-{"Id":4,"ChannelType":"SMS","Address":"+16502546320","Location":{"Country":"US"},"User":{"UserId":"test-user-id-4"}}
+{"Id":5,"ChannelType":"SMS","Address":"+16502546320","Location":{"Country":"US"},"User":{"UserId":"test-user-id-5"}}

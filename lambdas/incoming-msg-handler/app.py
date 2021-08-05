@@ -116,8 +116,9 @@ def lambda_handler(event, context):
 
             debt_record = find_or_create_debt_state(debt_id, journey_id)
             print(f'Debt state found: {debt_record}')
+            msg.update(debt_record)
 
-            messages.append(msg.copy().update(debt_record.copy()))
+            messages.append(msg.copy())
 
     sqs_queue_name = os.getenv('SQS_QUEUE_NAME')
     print(f'Downstream SQS queue: {sqs_queue_name}')
