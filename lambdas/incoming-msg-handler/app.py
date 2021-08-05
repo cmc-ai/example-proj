@@ -4,7 +4,7 @@ import os
 import boto3
 import pg8000
 
-from .debt_record_model import DebtRecordModel
+from debt_record_model import DebtRecordModel
 
 sqs_resource = boto3.resource('sqs')
 rds_client = boto3.client('rds')
