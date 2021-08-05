@@ -112,7 +112,10 @@ def lambda_handler(event, context):
             }
 
             debt_id, journey_id = find_debt_by_number(originationNumber)
+            print(f'DebtId, JourneyId found: {debt_id} {journey_id}')
+
             debt_record = find_or_create_debt_state(debt_id, journey_id)
+            print(f'Debt state found: {debt_record}')
 
             messages.append(msg.copy().update(debt_record.copy()))
 
