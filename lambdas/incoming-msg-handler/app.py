@@ -4,6 +4,8 @@ import os
 import boto3
 import pg8000
 
+from debt_record_model import DebtRecordModel
+
 sqs_resource = boto3.resource('sqs')
 rds_client = boto3.client('rds')
 pg_conn = None
@@ -77,12 +79,17 @@ def find_debt_by_number(origination_number: str):
 
 
 def find_or_create_debt_state(debt_id, journey_id):
-    item = None
-    # get data by debt_id
+    debt_records = [d for d in DebtRecordModel.query(debt_id)]
 
-    # if no data, create item and get it
+    if debt_records:
+        debt_record = debt_records[0]  # TODO: what if several?
+    else:
+        print(f'Debt Id {debt_id} is not found')
+        debt_record = DebtRecordModel(debt_id=debt_id, journey_id=journey_id)
+        print(f'Add Debt {debt_record.attribute_values} to Table')
+        debt_record.save()
 
-    return item
+    return debt_record.attribute_values  # convert to dict
 
 
 def lambda_handler(event, context):
@@ -97,17 +104,17 @@ def lambda_handler(event, context):
             messageKeyword = response_msg['messageKeyword']
             messageBody = response_msg['messageBody']
             print(f"Response message from {originationNumber}: {messageKeyword} {messageBody}")
-
-            debt_id, journey_id = find_debt_by_number(originationNumber)
-            debt_state = find_or_create_debt_state(debt_id, journey_id)
-
-            messages.append({
+            msg = {
                 'originationNumber': originationNumber,
                 'destinationNumber': destinationNumber,
                 'messageKeyword': messageKeyword,
                 'messageBody': messageBody
-                # some DynamoDB data
-            })
+            }
+
+            debt_id, journey_id = find_debt_by_number(originationNumber)
+            debt_record = find_or_create_debt_state(debt_id, journey_id)
+
+            messages.append(msg.copy().update(debt_record.copy()))
 
     sqs_queue_name = os.getenv('SQS_QUEUE_NAME')
     print(f'Downstream SQS queue: {sqs_queue_name}')
