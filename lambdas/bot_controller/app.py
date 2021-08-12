@@ -10,6 +10,7 @@ lex_client = boto3.client('lexv2-runtime')
 rds_client = boto3.client('rds')
 pg_conn = None
 
+
 def call_chatbot(response_msg_and_session_state):
     bot_id = os.getenv('AWS_LEX_BOT_ID', 'A9ENAISYXZ')
     bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID', 'TSTALIASID')
@@ -36,13 +37,26 @@ def start_conversation(response_msg_and_session_state):
     global pg_conn
     global rds_client
     conn = get_or_create_pg_connection(pg_conn, rds_client)
-    # find debt details in Aurora
 
-    return 'new_msg'
+    # find debt details in Aurora
+    query = f"""
+                SELECT c.organization, d.outstandingBalance
+                FROM Debt d JOIN Client c on d.client_id = c.id
+                WHERE d.id = {response_msg_and_session_state.get('debt_id')}
+            """
+    cursor = conn.cursor()
+    rows = cursor.execute(query).fetchall()
+    cursor.close()
+    organization, outstanding_balance = rows[0] if rows else (None, None)
+    print(f'organization, outstanding_balance {organization, outstanding_balance}')
+
+    new_msg = f'''
+    {organization} has a balance in collections for ${outstanding_balance}. To make a payment, reply PAYMENT. To know more about debt, reply DETAIL.
+    '''
+    return new_msg
 
 
 def lambda_handler(event, context):
-
     for record in event['Records']:
         response_msg_and_session_state = json.loads(record['body'])
         print(f'MESSAGE: {response_msg_and_session_state}')

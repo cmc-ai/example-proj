@@ -72,9 +72,7 @@ def find_or_create_debt_state(debt_id, borrower_id, journey_id):
         debt_record.save()
 
     state = debt_record.attribute_values  # convert to dict
-    print(f'State {state}')
     state.update({'is_first_entrance': is_first_entrance})
-    print(f'State {state}')
     return state
 
 
