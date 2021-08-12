@@ -1,1 +1,1 @@
-{"Id":5,"ChannelType":"SMS","Address":"+16502546320","Location":{"Country":"US"},"User":{"UserId":"test-user-id-5"}}
+{"Id":6,"ChannelType":"SMS","Address":"+16502546320","Location":{"Country":"US"}, "User":{"UserId":"test-user-id-6", "UserAttributes":  {"FirstName":  ["Stan"], "LastName": ["Nikitin"]}}}

@@ -1,10 +1,13 @@
 import json
 import os
+import uuid
 
 import boto3
-import pg8000
+# import pg8000
 
+# this dependency is deployed to /opt/python by Lambda Layers
 from debt_record_model import DebtRecordModel
+from helper_functions import get_or_create_pg_connection
 
 sqs_resource = boto3.resource('sqs')
 rds_client = boto3.client('rds')
@@ -29,41 +32,13 @@ def write_batch_sqs(messages: list, queue):
         print(f'PUSH-TO-QUEUE RESPONSE: {response}')
 
 
-def get_pg_connection():
-    global pg_conn
-
-    if pg_conn:
-        return pg_conn
-
-    try:
-        print("Connecting to database")
-
-        DBEndPoint = os.environ.get("DBEndPoint")
-        DatabaseName = os.environ.get("DatabaseName")
-        DBUserName = os.environ.get("DBUserName")
-        password = rds_client.generate_db_auth_token(DBHostname=DBEndPoint, Port=5432, DBUsername=DBUserName)
-
-        # Establishes the connection with the server using the token generated as password
-        pg_conn = pg8000.connect(
-            host=DBEndPoint,
-            user=DBUserName,
-            database=DatabaseName,
-            password=password,
-            ssl_context=True
-        )
-
-        print("Connected to database")
-        return pg_conn
-
-    except Exception as e:
-        print("While connecting failed due to :{0}".format(str(e)))
-        return None
-
-
 def find_debt_by_number(origination_number: str):
-    conn = get_pg_connection()
+    global pg_conn
+    global rds_client
+    conn = get_or_create_pg_connection(pg_conn, rds_client)
+
     query = f"""
-            SELECT b.debtId, jea.journeyId
+            SELECT b.debtId, b.id, jea.journeyId
             FROM Debt d JOIN Borrower b on d.id = b.debtId
             JOIN JourneyEntryActivity jea on d.id = jea.debtId
             where b.phoneNum = '{origination_number}'
@@ -74,22 +49,28 @@ def find_debt_by_number(origination_number: str):
     # colnames = [desc[0] for desc in cursor.description]
     cursor.close()
 
-    debt_id, journey_id = rows[0] if rows else (None, None)
-    return debt_id, journey_id
+    debt_id, borrower_id, journey_id = rows[0] if rows else (None, None, None)
+    return debt_id, borrower_id, journey_id
 
 
-def find_or_create_debt_state(debt_id, journey_id):
+def find_or_create_debt_state(debt_id, borrower_id, journey_id):
+    is_first_entrance = False  # for simplicity, move to Aurora later
+
     debt_records = [d for d in DebtRecordModel.query(debt_id)]
 
     if debt_records:
-        debt_record = debt_records[0]  # TODO: what if several?
+        debt_record = debt_records[0]  # what if several?
     else:
         print(f'Debt Id {debt_id} is not found')
-        debt_record = DebtRecordModel(debt_id=debt_id, journey_id=journey_id)
+        debt_record = DebtRecordModel(debt_id=debt_id,
+                                      borrower_id=borrower_id,
+                                      journey_id=journey_id,
+                                      aws_lex_session_id=str(uuid.uuid4()))  # generate uuid for a new session
+        is_first_entrance = True
         print(f'Add Debt {debt_record.attribute_values} to Table')
         debt_record.save()
 
-    return debt_record.attribute_values  # convert to dict
+    return debt_record.attribute_values.update({'is_first_entrance': is_first_entrance})
 
 
 def lambda_handler(event, context):
@@ -111,10 +92,10 @@ def lambda_handler(event, context):
                 'messageBody': messageBody
             }
 
-            debt_id, journey_id = find_debt_by_number(originationNumber)
+            debt_id, borrower_id, journey_id = find_debt_by_number(originationNumber)
             print(f'DebtId, JourneyId found: {debt_id} {journey_id}')
 
-            debt_record = find_or_create_debt_state(debt_id, journey_id)
+            debt_record = find_or_create_debt_state(debt_id, borrower_id, journey_id)
             print(f'Debt state found: {debt_record}')
             msg.update(debt_record)
 
