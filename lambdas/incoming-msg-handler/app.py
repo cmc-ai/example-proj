@@ -59,6 +59,7 @@ def find_or_create_debt_state(debt_id, borrower_id, journey_id):
     debt_records = [d for d in DebtRecordModel.query(debt_id)]
 
     if debt_records:
+        print(f'Debt Id {debt_id} is found')
         debt_record = debt_records[0]  # what if several?
     else:
         print(f'Debt Id {debt_id} is not found')
@@ -70,7 +71,11 @@ def find_or_create_debt_state(debt_id, borrower_id, journey_id):
         print(f'Add Debt {debt_record.attribute_values} to Table')
         debt_record.save()
 
-    return debt_record.attribute_values.update({'is_first_entrance': is_first_entrance})
+    state = debt_record.attribute_values  # convert to dict
+    print(f'State {state}')
+    state.update({'is_first_entrance': is_first_entrance})
+    print(f'State {state}')
+    return state
 
 
 def lambda_handler(event, context):
