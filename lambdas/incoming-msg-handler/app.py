@@ -84,19 +84,16 @@ def lambda_handler(event, context):
         if record.get('Sns'):
             response_msg = json.loads(record['Sns']['Message'])
             originationNumber = response_msg['originationNumber']
-            destinationNumber = response_msg['destinationNumber']
-            messageKeyword = response_msg['messageKeyword']
-            messageBody = response_msg['messageBody']
-            print(f"Response message from {originationNumber}: {messageKeyword} {messageBody}")
+            print(f"Response message: {response_msg}")
             msg = {
                 'originationNumber': originationNumber,
-                'destinationNumber': destinationNumber,
-                'messageKeyword': messageKeyword,
-                'messageBody': messageBody
+                'destinationNumber': response_msg['destinationNumber'],
+                'messageKeyword': response_msg['messageKeyword'],
+                'messageBody': response_msg['messageBody']
             }
 
             debt_id, borrower_id, journey_id = find_debt_by_number(originationNumber)
-            print(f'DebtId, JourneyId found: {debt_id} {journey_id}')
+            print(f'debt_id, borrower_id, journey_id: {debt_id} {borrower_id} {journey_id}')
 
             debt_record = find_or_create_debt_state(debt_id, borrower_id, journey_id)
             print(f'Debt state found: {debt_record}')
@@ -108,3 +105,12 @@ def lambda_handler(event, context):
     print(f'Downstream SQS queue: {sqs_queue_name}')
     queue = sqs_resource.get_queue_by_name(QueueName=sqs_queue_name)
     write_batch_sqs(messages, queue)
+
+"""
+{
+  "originationNumber":"+16502546320",
+  "destinationNumber":"+18334640389‬",
+  "messageKeyword":"YES",
+  "messageBody":"yes"
+}
+"""
