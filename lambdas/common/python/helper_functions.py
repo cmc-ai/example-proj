@@ -1,10 +1,9 @@
 import os
-
 import pg8000
+from botocore.exceptions import ClientError
 
 
 def get_or_create_pg_connection(pg_conn, rds_client):
-
     if pg_conn:
         return pg_conn
 
@@ -29,5 +28,38 @@ def get_or_create_pg_connection(pg_conn, rds_client):
         return pg_conn
 
     except Exception as e:
-        print("While connecting failed due to :{0}".format(str(e)))
+        print(f"While connecting failed due to :{str(e)}")
         return None
+
+
+def send_sms(pipoint_client, message, originationNumber, destinationNumber):
+    print(f'SENDING MESSAGE: {message} FROM {originationNumber} TO {destinationNumber}')
+
+    applicationId = os.getenv('AWS_PINPOINT_PROJECT_ID')
+    registeredKeyword = os.getenv('AWS_PINPOINT_KEYWORD', '')
+    messageType = os.getenv('AWS_PINPOINT_MESSAGE_TYPE', 'PROMOTIONAL')
+
+    try:
+        response = pipoint_client.send_messages(
+            ApplicationId=applicationId,
+            MessageRequest={
+                'Addresses': {
+                    destinationNumber: {
+                        'ChannelType': 'SMS'
+                    }
+                },
+                'MessageConfiguration': {
+                    'SMSMessage': {
+                        'Body': message,
+                        'Keyword': registeredKeyword,
+                        'MessageType': messageType,
+                        'OriginationNumber': originationNumber
+                    }
+                }
+            }
+        )
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+    else:
+        print("Message sent! Message ID: "
+              + response['MessageResponse']['Result'][destinationNumber]['MessageId'])

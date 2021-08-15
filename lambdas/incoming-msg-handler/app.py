@@ -105,12 +105,3 @@ def lambda_handler(event, context):
     print(f'Downstream SQS queue: {sqs_queue_name}')
     queue = sqs_resource.get_queue_by_name(QueueName=sqs_queue_name)
     write_batch_sqs(messages, queue)
-
-"""
-{
-  "originationNumber":"+16502546320",
-  "destinationNumber":"+18334640389‬",
-  "messageKeyword":"YES",
-  "messageBody":"yes"
-}
-"""

@@ -2,15 +2,18 @@
 # AWS_PINPOINT_PROJECT_ID, AWS_PINPOINT_MESSAGE_TYPE,
 # AWS_PINPOINT_KEYWORD (The SMS program name that you provided to AWS Support when you requested your dedicated number)
 
+# Permissions
+# mobiletargeting:SendMessages
+
 import json
 import os
 
 import boto3
-from botocore.exceptions import ClientError
 
 
-# this dependency is deployed to /opt/python by Lambda Layers
-from helper_functions import get_or_create_pg_connection
+# this dependencies are deployed to /opt/python by Lambda Layers
+from helper_functions import get_or_create_pg_connection, send_sms
+from constants import ChatbotPlaceholder
 
 pipoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))
 lex_client = boto3.client('lexv2-runtime')
@@ -54,44 +57,37 @@ def start_conversation(response_msg_and_session_state):
     cursor = conn.cursor()
     rows = cursor.execute(query).fetchall()
     cursor.close()
-    organization, outstanding_balance = rows[0] if rows else (None, None)
-    print(f'organization, outstanding_balance {organization, outstanding_balance}')
+    organization, outstanding_balance = rows[0] if rows else ('', '')
 
     new_msg = f'''{organization.strip()} has a balance in collections for ${outstanding_balance}. To make a payment, reply PAYMENT. To know more about debt, reply DETAIL.'''
+    print(f'New Message: {new_msg}')
     return new_msg
 
 
-def send_sms(message, originationNumber, destinationNumber):
-    print(f'SENDING MESSAGE: {message} FROM {originationNumber} TO {destinationNumber}')
+def get_more_debt_details(response_msg_and_session_state):
+    global pg_conn
+    global rds_client
+    conn = get_or_create_pg_connection(pg_conn, rds_client)
 
-    applicationId = os.getenv('AWS_PINPOINT_PROJECT_ID')
-    registeredKeyword = os.getenv('AWS_PINPOINT_KEYWORD', '')
-    messageType = os.getenv('AWS_PINPOINT_MESSAGE_TYPE', 'PROMOTIONAL')
+    query = f"""
+                SELECT b.firstName, b.lastName, c.organization, d.outstandingBalance
+                FROM Debt d JOIN Client c on d.clientId = c.id JOIN Borrower b on b.debtId = d.id
+                WHERE d.id = {response_msg_and_session_state.get('debt_id')}
+                AND b.phoneNum = {response_msg_and_session_state.get('originationNumber')}
+                """
+    cursor = conn.cursor()
+    rows = cursor.execute(query).fetchall()
+    cursor.close()
+    firstName, lastName, organization, outstanding_balance = rows[0] if rows else ('', '', '', '')
 
-    try:
-        response = pipoint_client.send_messages(
-            ApplicationId=applicationId,
-            MessageRequest={
-                'Addresses': {
-                    destinationNumber: {
-                        'ChannelType': 'SMS'
-                    }
-                },
-                'MessageConfiguration': {
-                    'SMSMessage': {
-                        'Body': message,
-                        'Keyword': registeredKeyword,
-                        'MessageType': messageType,
-                        'OriginationNumber': originationNumber
-                    }
-                }
-            }
-        )
-    except ClientError as e:
-        print(e.response['Error']['Message'])
-    else:
-        print("Message sent! Message ID: "
-              + response['MessageResponse']['Result'][destinationNumber]['MessageId'])
+    msg = f'Name: {firstName.strip()} {lastName.strip()}; OriginalCreditor: {organization.strip()}; Amount Due: ${outstanding_balance};  To make a payment, reply PAYMENT'
+    return msg
+
+
+def replace_placeholders(msg: str, response_msg_and_session_state: dict):
+    msg = msg.replace(ChatbotPlaceholder.PaymentLink.value, 'www.make_payment.com')
+    msg = msg.replace(ChatbotPlaceholder.DebtDetails.value, get_more_debt_details(response_msg_and_session_state))
+    return msg
 
 
 def lambda_handler(event, context):
@@ -103,9 +99,10 @@ def lambda_handler(event, context):
         if response_msg_and_session_state.get('is_first_entrance', True):
             new_msg = start_conversation(response_msg_and_session_state)
         else:
-            new_msg = call_chatbot(response_msg_and_session_state)
+            raw_new_msg = call_chatbot(response_msg_and_session_state)
+            new_msg = replace_placeholders(raw_new_msg, response_msg_and_session_state)
 
         # send the new message TO originationNumber FROM destinationNumber
         new_destinationNumber = response_msg_and_session_state.get('originationNumber')
         new_originationNumber = response_msg_and_session_state.get('destinationNumber')
-        send_sms(new_msg, new_originationNumber, new_destinationNumber)
+        send_sms(pipoint_client, new_msg, new_originationNumber, new_destinationNumber)
