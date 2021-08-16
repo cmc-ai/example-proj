@@ -73,7 +73,7 @@ def get_more_debt_details(response_msg_and_session_state):
                 SELECT b.firstName, b.lastName, c.organization, d.outstandingBalance
                 FROM Debt d JOIN Client c on d.clientId = c.id JOIN Borrower b on b.debtId = d.id
                 WHERE d.id = {response_msg_and_session_state.get('debt_id')}
-                AND b.phoneNum = {response_msg_and_session_state.get('originationNumber')}
+                AND b.phoneNum = '{response_msg_and_session_state.get('originationNumber')}'
                 """
     cursor = conn.cursor()
     rows = cursor.execute(query).fetchall()
