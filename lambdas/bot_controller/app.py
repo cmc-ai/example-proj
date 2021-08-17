@@ -58,6 +58,7 @@ def start_conversation(response_msg_and_session_state):
     if float(outstanding_balance) > 0:
         new_msg = f'''{organization.strip()} has a balance in collections for ${outstanding_balance}. To make a payment, reply PAYMENT. To know more about debt, reply DETAIL.'''
     else:
+        new_msg = f'''{organization.strip()} has no balance in collection to you. Have a nice day!'''
     print(f'New Message: {new_msg}')
     return new_msg
 
