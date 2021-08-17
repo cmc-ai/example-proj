@@ -22,7 +22,8 @@ VALUES
 INSERT INTO Borrower
     (debtId, firstName, lastName, isPrimary, channelType, phoneNum, email,  createDate, lastUpdateDate)
 VALUES
-    (1, 'Stan', 'Nikitin', true, 'SMS', '+16502546320', '',  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+    (1, 'Stan', 'Nikitin', true, 'SMS', '+16502546320', '',  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (2, 'Stanislav', 'Nikitin', true, 'SMS', '+16502546320', '',  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 
 -- Journey Activity
