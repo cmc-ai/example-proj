@@ -1,9 +1,5 @@
-# OS ENVS TO BE ADDED
-# AWS_PINPOINT_PROJECT_ID, AWS_PINPOINT_MESSAGE_TYPE,
+# OS ENVS TO BE ADDED:
 # AWS_PINPOINT_KEYWORD (The SMS program name that you provided to AWS Support when you requested your dedicated number)
-
-# Permissions
-# mobiletargeting:SendMessages
 
 import json
 import os
@@ -59,7 +55,9 @@ def start_conversation(response_msg_and_session_state):
     cursor.close()
     organization, outstanding_balance = rows[0] if rows else ('', '')
 
-    new_msg = f'''{organization.strip()} has a balance in collections for ${outstanding_balance}. To make a payment, reply PAYMENT. To know more about debt, reply DETAIL.'''
+    if float(outstanding_balance) > 0:
+        new_msg = f'''{organization.strip()} has a balance in collections for ${outstanding_balance}. To make a payment, reply PAYMENT. To know more about debt, reply DETAIL.'''
+    else:
     print(f'New Message: {new_msg}')
     return new_msg
 
@@ -84,8 +82,36 @@ def get_more_debt_details(response_msg_and_session_state):
     return msg
 
 
+def get_payment_link(response_msg_and_session_state):
+    print(f'Generating Payment Link')
+    # TODO: generate payment link
+    return 'https://make_some_layment.com'
+
+
+def get_discount_proposal(response_msg_and_session_state):
+    global pg_conn
+    global rds_client
+    conn = get_or_create_pg_connection(pg_conn, rds_client)
+
+    # TODO: save discount proposal to Aurora/Dynamo
+
+    query = f"""
+                    SELECT d.discount, d.outstandingBalance
+                    FROM Debt d
+                    WHERE d.id = {response_msg_and_session_state.get('debt_id')}
+                    """
+    cursor = conn.cursor()
+    rows = cursor.execute(query).fetchall()
+    cursor.close()
+
+    discount, outstanding_balance = rows[0] if rows else ('', '')
+    msg = f'We can offer you a ${discount} discount, which reduces your balance to ${float(outstanding_balance) - float(discount)}. This offer expires in 24 hours. To make a payment, reply PAYMENT'
+    return msg
+
+
 def replace_placeholders(msg: str, response_msg_and_session_state: dict):
-    msg = msg.replace(ChatbotPlaceholder.PaymentLink.value, 'www.make_payment.com')
+    msg = msg.replace(ChatbotPlaceholder.PaymentLink.value, get_payment_link(response_msg_and_session_state))
+    msg = msg.replace(ChatbotPlaceholder.DebtDiscount.value, get_discount_proposal(response_msg_and_session_state))
     msg = msg.replace(ChatbotPlaceholder.DebtDetails.value, get_more_debt_details(response_msg_and_session_state))
     return msg
 
