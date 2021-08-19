@@ -1,10 +1,9 @@
 # OS ENVS TO BE ADDED:
 # AWS_PINPOINT_KEYWORD (The SMS program name that you provided to AWS Support when you requested your dedicated number)
 
+import boto3
 import json
 import os
-
-import boto3
 
 
 # this dependencies are deployed to /opt/python by Lambda Layers
@@ -129,7 +128,10 @@ def lambda_handler(event, context):
             raw_new_msg = call_chatbot(response_msg_and_session_state)
             new_msg = replace_placeholders(raw_new_msg, response_msg_and_session_state)
 
-        # send the new message TO originationNumber FROM destinationNumber
+        # send and log the new message TO originationNumber FROM destinationNumber
         new_destinationNumber = response_msg_and_session_state.get('originationNumber')
         new_originationNumber = response_msg_and_session_state.get('destinationNumber')
-        send_sms(pipoint_client, new_msg, new_originationNumber, new_destinationNumber)
+
+        send_sms(pipoint_client, new_msg, new_originationNumber, new_destinationNumber,
+                 response_msg_and_session_state.get('borrower_id'))
+

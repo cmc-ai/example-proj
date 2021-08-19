@@ -1,7 +1,5 @@
 -- insert this after the test_data
 
-select * from borrower;
-
 -- Debts
 INSERT INTO Debt
 	(clientId, clientPortfolioId, originalBalance, outstandingBalance, totalPayment, discount, createDate, lastUpdateDate)

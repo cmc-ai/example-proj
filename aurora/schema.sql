@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS APICall (
     method          char(10),
     url             char(100),
     payload         char(500),
-    createDate      timestamp,
+    createDate      timestamp, ---
     lastUpdateDate  timestamp,
 
     PRIMARY KEY (id)
@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS Debt (
     outstandingBalance  DECIMAL(12,2) NOT NULL,
     totalPayment        DECIMAL(12,2),
     discount            DECIMAL(12,2),
+    discountExpirationDateTime  timestamp,
     description         TEXT,
 
     createDate      timestamp,

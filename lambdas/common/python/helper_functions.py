@@ -1,6 +1,9 @@
 import os
 import pg8000
 from botocore.exceptions import ClientError
+from datetime import datetime
+
+from dynamo_models import BorrowerMessageModel
 
 
 def get_or_create_pg_connection(pg_conn, rds_client):
@@ -32,7 +35,7 @@ def get_or_create_pg_connection(pg_conn, rds_client):
         return None
 
 
-def send_sms(pipoint_client, message, originationNumber, destinationNumber):
+def send_sms(pipoint_client, message, originationNumber, destinationNumber, borrower_id=None):
     print(f'SENDING MESSAGE: {message} FROM {originationNumber} TO {destinationNumber}')
 
     applicationId = os.getenv('AWS_PINPOINT_PROJECT_ID')
@@ -61,5 +64,22 @@ def send_sms(pipoint_client, message, originationNumber, destinationNumber):
     except ClientError as e:
         print(e.response['Error']['Message'])
     else:
-        print("Message sent! Message ID: "
-              + response['MessageResponse']['Result'][destinationNumber]['MessageId'])
+        print("Message sent: " + response['MessageResponse']['Result'][destinationNumber]['MessageId'])
+        if borrower_id:
+            log_sms(borrower_id, int(datetime.now().timestamp()), originationNumber, destinationNumber, message)
+
+
+def log_sms(borrower_id, event_ts, origination_number, destination_number, text):
+    print(f'Logging message to Dynamo: borrower_id {borrower_id} event_ts {event_ts}')
+    item = BorrowerMessageModel(borrower_id=borrower_id,
+                                event_ts=event_ts,
+                                origination_number=origination_number,
+                                destination_number=destination_number,
+                                text=text)
+    item.save()
+
+
+def dt_to_ts(ts: str):
+    # '2021-08-18T11:41:55.285Z'
+    dt = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S.%fZ')
+    return int(dt.timestamp())

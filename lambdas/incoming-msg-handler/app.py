@@ -6,8 +6,8 @@ import boto3
 # import pg8000
 
 # this dependency is deployed to /opt/python by Lambda Layers
-from debt_record_model import DebtRecordModel
-from helper_functions import get_or_create_pg_connection
+from dynamo_models import DebtRecordModel, BorrowerMessageModel
+from helper_functions import get_or_create_pg_connection, log_sms, dt_to_ts
 
 sqs_resource = boto3.resource('sqs')
 rds_client = boto3.client('rds')
@@ -83,17 +83,22 @@ def lambda_handler(event, context):
     for record in event['Records']:
         if record.get('Sns'):
             response_msg = json.loads(record['Sns']['Message'])
+            response_ts = dt_to_ts(record['Sns']['Timestamp'])
             originationNumber = response_msg['originationNumber']
+            destinationNumber = response_msg['destinationNumber']
+            messageBody = response_msg['messageBody']
             print(f"Response message: {response_msg}")
             msg = {
                 'originationNumber': originationNumber,
-                'destinationNumber': response_msg['destinationNumber'],
+                'destinationNumber': destinationNumber,
                 'messageKeyword': response_msg['messageKeyword'],
-                'messageBody': response_msg['messageBody']
+                'messageBody': messageBody
             }
 
             debt_id, borrower_id, journey_id = find_debt_by_number(originationNumber)
             print(f'debt_id, borrower_id, journey_id: {debt_id} {borrower_id} {journey_id}')
+
+            log_sms(borrower_id, response_ts, originationNumber, destinationNumber, messageBody)
 
             debt_record = find_or_create_debt_state(debt_id, borrower_id, journey_id)
             print(f'Debt state found: {debt_record}')
