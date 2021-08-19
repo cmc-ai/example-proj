@@ -10,32 +10,10 @@ import os
 from helper_functions import get_or_create_pg_connection, send_sms
 from constants import ChatbotPlaceholder
 
-pipoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))
+pinoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))
 lex_client = boto3.client('lexv2-runtime')
 rds_client = boto3.client('rds')
 pg_conn = None
-
-
-def call_chatbot(response_msg_and_session_state):
-    bot_id = os.getenv('AWS_LEX_BOT_ID', 'A9ENAISYXZ')
-    bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID', 'TSTALIASID')
-    locale_id = os.getenv('AWS_LEX_LOCALE_ID', 'en_US')
-    message = response_msg_and_session_state.get('messageBody')
-    aws_lex_session_id = response_msg_and_session_state.get('aws_lex_session_id')
-
-    print(f'Calling the chatbot bot_id {bot_id} bot_alias_id {bot_alias_id} locale_id {locale_id}')
-    chatbot_response = lex_client.recognize_text(
-        botId=bot_id,
-        botAliasId=bot_alias_id,
-        localeId=locale_id,
-        sessionId=aws_lex_session_id,
-        text=message,
-        sessionState={},
-        requestAttributes={}
-    )
-    print(f'Chatbot response: {chatbot_response}')
-
-    return chatbot_response.get('messages')[0].get('content')
 
 
 def start_conversation(response_msg_and_session_state):
@@ -85,7 +63,7 @@ def get_more_debt_details(response_msg_and_session_state):
 def get_payment_link(response_msg_and_session_state):
     print(f'Generating Payment Link')
     # TODO: generate payment link
-    return 'https://make_some_layment.com'
+    return 'https://make_some_payment.com'
 
 
 def get_discount_proposal(response_msg_and_session_state):
@@ -109,11 +87,48 @@ def get_discount_proposal(response_msg_and_session_state):
     return msg
 
 
-def replace_placeholders(msg: str, response_msg_and_session_state: dict):
-    msg = msg.replace(ChatbotPlaceholder.PaymentLink.value, get_payment_link(response_msg_and_session_state))
-    msg = msg.replace(ChatbotPlaceholder.DebtDiscount.value, get_discount_proposal(response_msg_and_session_state))
-    msg = msg.replace(ChatbotPlaceholder.DebtDetails.value, get_more_debt_details(response_msg_and_session_state))
+def redirect_on_agent(response_msg_and_session_state):
+    # global pg_conn
+    # global rds_client
+
+    msg = f'OK, our agent will contact you shortly'
     return msg
+
+
+def process_placeholders(msg: str, response_msg_and_session_state: dict) -> str:
+    if ChatbotPlaceholder.PaymentLink.value in msg:
+        return get_payment_link(response_msg_and_session_state)
+    elif ChatbotPlaceholder.DebtDiscount.value in msg:
+        return get_discount_proposal(response_msg_and_session_state)
+    elif ChatbotPlaceholder.DebtDetails.value in msg:
+        return get_more_debt_details(response_msg_and_session_state)
+    elif ChatbotPlaceholder.NotEnoughMoney.value in msg:
+        return redirect_on_agent(response_msg_and_session_state)
+    else:
+        return msg
+
+
+def call_chatbot(response_msg_and_session_state):
+    bot_id = os.getenv('AWS_LEX_BOT_ID', 'A9ENAISYXZ')
+    bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID', 'TSTALIASID')
+    locale_id = os.getenv('AWS_LEX_LOCALE_ID', 'en_US')
+    message = response_msg_and_session_state.get('messageBody')
+    aws_lex_session_id = response_msg_and_session_state.get('aws_lex_session_id')
+
+    print(f'Calling the chatbot bot_id {bot_id} bot_alias_id {bot_alias_id} locale_id {locale_id}')
+    chatbot_response = lex_client.recognize_text(
+        botId=bot_id,
+        botAliasId=bot_alias_id,
+        localeId=locale_id,
+        sessionId=aws_lex_session_id,
+        text=message,
+        sessionState={},
+        requestAttributes={}
+    )
+    print(f'Chatbot response: {chatbot_response}')
+    message = chatbot_response.get('messages')[0].get('content')
+
+    return process_placeholders(message, response_msg_and_session_state)
 
 
 def lambda_handler(event, context):
@@ -125,13 +140,12 @@ def lambda_handler(event, context):
         if response_msg_and_session_state.get('is_first_entrance', True):
             new_msg = start_conversation(response_msg_and_session_state)
         else:
-            raw_new_msg = call_chatbot(response_msg_and_session_state)
-            new_msg = replace_placeholders(raw_new_msg, response_msg_and_session_state)
+            new_msg = call_chatbot(response_msg_and_session_state)
 
         # send and log the new message TO originationNumber FROM destinationNumber
         new_destinationNumber = response_msg_and_session_state.get('originationNumber')
         new_originationNumber = response_msg_and_session_state.get('destinationNumber')
 
-        send_sms(pipoint_client, new_msg, new_originationNumber, new_destinationNumber,
+        send_sms(pinoint_client, new_msg, new_originationNumber, new_destinationNumber,
                  response_msg_and_session_state.get('borrower_id'))
 

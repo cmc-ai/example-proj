@@ -9,6 +9,7 @@ class ChatbotIntent(Enum):
     DetailsIntent = 'DetailsIntent'
     DiscountIntent = 'DiscountIntent'
     FallbackIntent = 'FallbackIntent'
+    NotEnoughMoneyIntent = 'NotEnoughMoneyIntent'
 
 
 class SessionStateDialogAction(Enum):
@@ -23,3 +24,4 @@ class ChatbotPlaceholder(Enum):
     PaymentLink = '_PAYMENT_LINK_'
     DebtDetails = '_DEBT_DETAILS_'
     DebtDiscount = '_DEBT_DISCOUNT_'
+    NotEnoughMoney = '_NOT_ENOUGH_MONEY_'

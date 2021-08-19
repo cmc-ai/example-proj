@@ -57,6 +57,18 @@ def process_discount_intent(event: dict):
     return response
 
 
+def process_not_enough_money_intent(event: dict):
+    print('Process Not Enough Money Fulfillment')
+    session_state = fill_session_state(event.get('sessionState').copy())
+    messages = [{'contentType': 'PlainText', 'content': ChatbotPlaceholder.NotEnoughMoney.value}]
+
+    response = {
+        'sessionState': session_state,
+        'messages': messages
+    }
+    return response
+
+
 def lambda_handler(event, context):
     print(event)
     '''
@@ -86,6 +98,8 @@ def lambda_handler(event, context):
         response = process_details_intent(event)
     elif intent == ChatbotIntent.DiscountIntent.value:
         response = process_discount_intent(event)
+    elif intent == ChatbotIntent.NotEnoughMoneyIntent.value:
+        response = process_not_enough_money_intent(event)
     else:
         response = process_fallback(event)
 

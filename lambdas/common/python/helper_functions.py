@@ -35,7 +35,7 @@ def get_or_create_pg_connection(pg_conn, rds_client):
         return None
 
 
-def send_sms(pipoint_client, message, originationNumber, destinationNumber, borrower_id=None):
+def send_sms(pinoint_client, message, originationNumber, destinationNumber, borrower_id=None):
     print(f'SENDING MESSAGE: {message} FROM {originationNumber} TO {destinationNumber}')
 
     applicationId = os.getenv('AWS_PINPOINT_PROJECT_ID')
@@ -43,7 +43,7 @@ def send_sms(pipoint_client, message, originationNumber, destinationNumber, borr
     messageType = os.getenv('AWS_PINPOINT_MESSAGE_TYPE', 'PROMOTIONAL')
 
     try:
-        response = pipoint_client.send_messages(
+        response = pinoint_client.send_messages(
             ApplicationId=applicationId,
             MessageRequest={
                 'Addresses': {
@@ -79,7 +79,7 @@ def log_sms(borrower_id, event_ts, origination_number, destination_number, text)
     item.save()
 
 
-def dt_to_ts(ts: str):
+def dt_to_ts(str_dt: str):
     # '2021-08-18T11:41:55.285Z'
-    dt = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S.%fZ')
+    dt = datetime.strptime(str_dt, '%Y-%m-%dT%H:%M:%S.%fZ')
     return int(dt.timestamp())
