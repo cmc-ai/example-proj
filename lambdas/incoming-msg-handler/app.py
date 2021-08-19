@@ -1,12 +1,9 @@
 import json
 import os
-import uuid
 
 import boto3
-# import pg8000
 
 # this dependency is deployed to /opt/python by Lambda Layers
-from dynamo_models import DebtRecordModel, BorrowerMessageModel
 from helper_functions import get_or_create_pg_connection, log_sms, dt_to_ts
 
 sqs_resource = boto3.resource('sqs')
@@ -53,29 +50,6 @@ def find_debt_by_number(origination_number: str):
     return debt_id, borrower_id, journey_id
 
 
-def find_or_create_debt_state(debt_id, borrower_id, journey_id):
-    is_first_entrance = False  # for simplicity, move to Aurora later
-
-    debt_records = [d for d in DebtRecordModel.query(debt_id)]
-
-    if debt_records:
-        print(f'Debt Id {debt_id} is found')
-        debt_record = debt_records[0]  # what if several?
-    else:
-        print(f'Debt Id {debt_id} is not found')
-        debt_record = DebtRecordModel(debt_id=debt_id,
-                                      borrower_id=borrower_id,
-                                      journey_id=journey_id,
-                                      aws_lex_session_id=str(uuid.uuid4()))  # generate uuid for a new session
-        is_first_entrance = True
-        print(f'Add Debt {debt_record.attribute_values} to Table')
-        debt_record.save()
-
-    state = debt_record.attribute_values  # convert to dict
-    state.update({'is_first_entrance': is_first_entrance})
-    return state
-
-
 def lambda_handler(event, context):
     print(event['Records'])
 
@@ -88,22 +62,21 @@ def lambda_handler(event, context):
             destinationNumber = response_msg['destinationNumber']
             messageBody = response_msg['messageBody']
             print(f"Response message: {response_msg}")
-            msg = {
-                'originationNumber': originationNumber,
-                'destinationNumber': destinationNumber,
-                'messageKeyword': response_msg['messageKeyword'],
-                'messageBody': messageBody
-            }
 
             debt_id, borrower_id, journey_id = find_debt_by_number(originationNumber)
             print(f'debt_id, borrower_id, journey_id: {debt_id} {borrower_id} {journey_id}')
 
             log_sms(borrower_id, response_ts, originationNumber, destinationNumber, messageBody)
 
-            debt_record = find_or_create_debt_state(debt_id, borrower_id, journey_id)
-            print(f'Debt state found: {debt_record}')
-            msg.update(debt_record)
-
+            msg = {
+                'originationNumber': originationNumber,
+                'destinationNumber': destinationNumber,
+                'messageKeyword': response_msg['messageKeyword'],
+                'messageBody': messageBody,
+                'debt_id': debt_id,
+                'borrower_id': borrower_id,
+                'journey_id': journey_id
+            }
             messages.append(msg.copy())
 
     sqs_queue_name = os.getenv('SQS_QUEUE_NAME')

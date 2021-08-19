@@ -4,16 +4,42 @@
 import boto3
 import json
 import os
+import uuid
 
 
 # this dependencies are deployed to /opt/python by Lambda Layers
-from helper_functions import get_or_create_pg_connection, send_sms
 from constants import ChatbotPlaceholder
+from dynamo_models import DebtRecordModel
+from helper_functions import get_or_create_pg_connection, send_sms
 
 pinoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))
 lex_client = boto3.client('lexv2-runtime')
 rds_client = boto3.client('rds')
 pg_conn = None
+
+
+def find_or_create_debt_state(response_msg_and_session_state):
+    debt_id = response_msg_and_session_state.get('debt_id')
+    borrower_id = response_msg_and_session_state.get('borrower_id')
+    is_first_entrance = False  # for simplicity, move to Aurora later
+
+    debt_records = [d for d in DebtRecordModel.query(debt_id)]
+
+    if debt_records:
+        print(f'Debt Id {debt_id} is found')
+        debt_record = debt_records[0]
+    else:
+        print(f'Debt Id {debt_id} is not found')
+        debt_record = DebtRecordModel(debt_id=debt_id,
+                                      borrower_id=borrower_id,
+                                      aws_lex_session_id=str(uuid.uuid4()))  # generate uuid for a new session
+        is_first_entrance = True
+        print(f'Add Debt {debt_record.attribute_values} to Table')
+        debt_record.save()
+
+    state = debt_record.attribute_values  # convert to dict
+    state.update({'is_first_entrance': is_first_entrance})
+    return state
 
 
 def start_conversation(response_msg_and_session_state):
@@ -71,7 +97,7 @@ def get_discount_proposal(response_msg_and_session_state):
     global rds_client
     conn = get_or_create_pg_connection(pg_conn, rds_client)
 
-    # TODO: save discount proposal to Aurora/Dynamo
+    # TODO: save discount proposal to Aurora's Debt.discountExpirationDateTime
 
     query = f"""
                     SELECT d.discount, d.outstandingBalance
@@ -88,8 +114,8 @@ def get_discount_proposal(response_msg_and_session_state):
 
 
 def redirect_on_agent(response_msg_and_session_state):
-    # global pg_conn
-    # global rds_client
+    # TODO: remove debt record from Dynamo
+    # TODO:  close Journey(Entry)ExeActivity in Aurora
 
     msg = f'OK, our agent will contact you shortly'
     return msg
@@ -134,6 +160,10 @@ def call_chatbot(response_msg_and_session_state):
 def lambda_handler(event, context):
     for record in event['Records']:
         response_msg_and_session_state = json.loads(record['body'])
+
+        debt_record = find_or_create_debt_state(response_msg_and_session_state)
+        response_msg_and_session_state.update(debt_record)
+
         print(f'Incoming message and session state: {response_msg_and_session_state}')
 
         # process the msg+state with Lex
