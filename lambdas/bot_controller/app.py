@@ -6,16 +6,21 @@ import json
 import os
 import uuid
 
+from datetime import datetime, timedelta
+
 
 # this dependencies are deployed to /opt/python by Lambda Layers
 from constants import ChatbotPlaceholder
 from dynamo_models import DebtRecordModel
 from helper_functions import get_or_create_pg_connection, send_sms
+from payment_processors import SwerveProcessor
 
 pinoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))
 lex_client = boto3.client('lexv2-runtime')
 rds_client = boto3.client('rds')
 pg_conn = None
+
+DEFAULT_DISCOUNT_EXPIRATION_HOURS = 24
 
 
 def find_or_create_debt_state(response_msg_and_session_state):
@@ -87,24 +92,36 @@ def get_more_debt_details(response_msg_and_session_state):
 
 
 def get_payment_link(response_msg_and_session_state):
+    global pg_conn
+    global rds_client
+    conn = get_or_create_pg_connection(pg_conn, rds_client)
+
     print(f'Generating Payment Link')
-    # TODO: generate payment link
-    return 'https://make_some_payment.com'
+    # payment_proc = SwerveProcessor(response_msg_and_session_state.get('debt_id'))
+    # link = payment_proc.get_or_create_payment_link(pg_conn=conn)
+    link = 'https://some_link.com'
+    return link
 
 
 def get_discount_proposal(response_msg_and_session_state):
     global pg_conn
     global rds_client
     conn = get_or_create_pg_connection(pg_conn, rds_client)
+    cursor = conn.cursor()
 
-    # TODO: save discount proposal to Aurora's Debt.discountExpirationDateTime
+    discount_exp_dt = datetime.now() + timedelta(hours=DEFAULT_DISCOUNT_EXPIRATION_HOURS)
+    query = f"""
+        INSERT INTO Debt (discountExpirationDateTime)
+        VALUES (TIMESTAMP {discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')})
+        WHERE WHERE id = {response_msg_and_session_state.get('debt_id')}
+    """
+    cursor.execute(query).fetchall()
 
     query = f"""
                     SELECT d.discount, d.outstandingBalance
                     FROM Debt d
                     WHERE d.id = {response_msg_and_session_state.get('debt_id')}
                     """
-    cursor = conn.cursor()
     rows = cursor.execute(query).fetchall()
     cursor.close()
 
@@ -114,8 +131,8 @@ def get_discount_proposal(response_msg_and_session_state):
 
 
 def redirect_on_agent(response_msg_and_session_state):
-    # TODO: remove debt record from Dynamo
-    # TODO:  close Journey(Entry)ExeActivity in Aurora
+    # TODO: remove debt record from Dynamo ???
+    # TODO:  close Journey(Entry)ExeActivity in Aurora ???
 
     msg = f'OK, our agent will contact you shortly'
     return msg
