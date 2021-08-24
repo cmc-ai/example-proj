@@ -66,7 +66,7 @@ class SwerveProcessor:
         query = f"""
             UPDATE DebtPaymentLink SET
             url = '{payment_link}',
-            expirationDateTime = TIMESTAMP '{expiration_dt.strftime('%Y-%m-%d %H:%M:%S')}',
+            expirationDateTime = TO_TIMESTAMP('{expiration_dt.strftime('%Y-%m-%d %H:%M:%S')}', 'YYYY-MM-DD HH:MI:SS'),
             lastUpdateDate = CURRENT_TIMESTAMP
             WHERE debtId = {self.debt_id}
         """
