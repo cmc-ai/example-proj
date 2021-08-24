@@ -64,8 +64,8 @@ class SwerveProcessor:
                                                  expiration_dt=expiration_dt)
 
         query = f"""
-            INSERT INTO DebtPaymentLink (url, expirationDateTime)
-            VALUES ({payment_link}, TIMESTAMP '{expiration_dt.strftime('%Y-%m-%d %H:%M:%S')}')
+            UPDATE DebtPaymentLink 
+            SET (url, expirationDateTime) = ({payment_link}, TIMESTAMP '{expiration_dt.strftime('%Y-%m-%d %H:%M:%S')}')
             WHERE debtId = {self.debt_id}
         """
         cursor.execute(query).fetchall()

@@ -112,8 +112,7 @@ def get_discount_proposal(response_msg_and_session_state):
     # save new discount_expiration_dt
     discount_exp_dt = datetime.now() + timedelta(hours=DEFAULT_DISCOUNT_EXPIRATION_HOURS)
     query = f"""
-        INSERT INTO Debt (discountExpirationDateTime)
-        VALUES (TIMESTAMP '{discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')}')
+        UPDATE Debt SET (discountExpirationDateTime) = (TIMESTAMP '{discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')}')
         WHERE WHERE id = {response_msg_and_session_state.get('debt_id')}
     """
     cursor.execute(query).fetchall()
