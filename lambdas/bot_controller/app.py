@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from constants import ChatbotPlaceholder
 from dynamo_models import DebtRecordModel
 from helper_functions import get_or_create_pg_connection, send_sms
-from payment_processors import SwerveProcessor
+# from payment_processors import SwerveProcessor
 
 pinoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))
 lex_client = boto3.client('lexv2-runtime')
@@ -109,6 +109,7 @@ def get_discount_proposal(response_msg_and_session_state):
     conn = get_or_create_pg_connection(pg_conn, rds_client)
     cursor = conn.cursor()
 
+    # save new discount_expiration_dt
     discount_exp_dt = datetime.now() + timedelta(hours=DEFAULT_DISCOUNT_EXPIRATION_HOURS)
     query = f"""
         INSERT INTO Debt (discountExpirationDateTime)
@@ -117,6 +118,7 @@ def get_discount_proposal(response_msg_and_session_state):
     """
     cursor.execute(query).fetchall()
 
+    # get discount amount
     query = f"""
                     SELECT d.discount, d.outstandingBalance
                     FROM Debt d
