@@ -9,6 +9,30 @@ def fill_session_state(session_state: dict):
     return session_state
 
 
+def process_initial_positive_intent(event: dict):
+    print('Process Initial Positive Fulfillment')
+    session_state = fill_session_state(event.get('sessionState').copy())
+    messages = [{'contentType': 'PlainText', 'content': ChatbotPlaceholder.StartConversation.value}]
+
+    response = {
+        'sessionState': session_state,
+        'messages': messages
+    }
+    return response
+
+
+def process_initial_negative_intent(event: dict):
+    print('Process Initial Negative Fulfillment')
+    session_state = fill_session_state(event.get('sessionState').copy())
+    messages = [{'contentType': 'PlainText', 'content': ChatbotPlaceholder.SorryUtterance.value}]
+
+    response = {
+        'sessionState': session_state,
+        'messages': messages
+    }
+    return response
+
+
 def process_payment_intent(event: dict):
     print('Process Payment Fulfillment')
     session_state = fill_session_state(event.get('sessionState').copy())
@@ -24,7 +48,8 @@ def process_payment_intent(event: dict):
 def process_fallback(event: dict):
     print('Process Fallback Fulfillment')
     session_state = fill_session_state(event.get('sessionState').copy())
-    messages = [{'contentType': 'PlainText', 'content': 'Cannot recognize your intent. To make a payment, reply PAYMENT. To know more about debt, reply DETAIL'}]
+    messages = [{'contentType': 'PlainText',
+                 'content': 'Cannot recognize your intent. To make a payment, reply PAYMENT. To know more about debt, reply DETAIL'}]
 
     response = {
         'sessionState': session_state,
@@ -92,7 +117,11 @@ def lambda_handler(event, context):
 
     intent = event.get('sessionState').get('intent').get('name')
 
-    if intent == ChatbotIntent.PaymentIntent.value:
+    if intent == ChatbotIntent.InitialPositiveIntent.value:
+        response = process_initial_positive_intent(event)
+    elif intent == ChatbotIntent.InitialNegativeIntent.value:
+        response = process_initial_negative_intent(event)
+    elif intent == ChatbotIntent.PaymentIntent.value:
         response = process_payment_intent(event)
     elif intent == ChatbotIntent.DetailsIntent.value:
         response = process_details_intent(event)

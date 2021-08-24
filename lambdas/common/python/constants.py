@@ -5,6 +5,8 @@ INV_SRC_DIALOG = 'DialogCodeHook'
 
 
 class ChatbotIntent(Enum):
+    InitialPositiveIntent = 'InitialPositiveIntent'
+    InitialNegativeIntent = 'InitialNegativeIntent'
     PaymentIntent = 'PaymentIntent'
     DetailsIntent = 'DetailsIntent'
     DiscountIntent = 'DiscountIntent'
@@ -21,6 +23,8 @@ class SessionStateDialogAction(Enum):
 
 
 class ChatbotPlaceholder(Enum):
+    StartConversation = '_START_CONVERSATION_'
+    SorryUtterance = '_SORRY_UTTERANCE_'
     PaymentLink = '_PAYMENT_LINK_'
     DebtDetails = '_DEBT_DETAILS_'
     DebtDiscount = '_DEBT_DISCOUNT_'

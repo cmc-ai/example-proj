@@ -71,6 +71,12 @@ def start_conversation(response_msg_and_session_state):
     return new_msg
 
 
+def say_sorry(response_msg_and_session_state):
+    new_msg = f'''Sorry. Have a nice day!'''
+    print(f'New Message: {new_msg}')
+    return new_msg
+
+
 def get_more_debt_details(response_msg_and_session_state):
     global pg_conn
     global rds_client
@@ -144,7 +150,11 @@ def redirect_on_agent(response_msg_and_session_state):
 
 
 def process_placeholders(msg: str, response_msg_and_session_state: dict) -> str:
-    if ChatbotPlaceholder.PaymentLink.value in msg:
+    if ChatbotPlaceholder.StartConversation.value in msg:
+        return start_conversation(response_msg_and_session_state)
+    elif ChatbotPlaceholder.SorryUtterance.value in msg:
+        return say_sorry(response_msg_and_session_state)
+    elif ChatbotPlaceholder.PaymentLink.value in msg:
         return get_payment_link(response_msg_and_session_state)
     elif ChatbotPlaceholder.DebtDiscount.value in msg:
         return get_discount_proposal(response_msg_and_session_state)
