@@ -111,10 +111,10 @@ def get_discount_proposal(response_msg_and_session_state):
     # save new discount_expiration_dt
     discount_exp_dt = datetime.now() + timedelta(hours=DEFAULT_DISCOUNT_EXPIRATION_HOURS)
     query = f"""
-        UPDATE Debt d SET
-        d.discountExpirationDateTime = TO_TIMESTAMP('{discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')}', 'YYYY-MM-DD HH:MI:SS'),
-        d.lastUpdateDate = CURRENT_TIMESTAMP
-        WHERE d.id = {response_msg_and_session_state.get('debt_id')}
+        UPDATE Debt SET
+        discountExpirationDateTime = TO_TIMESTAMP('{discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')}', 'YYYY-MM-DD HH:MI:SS'),
+        lastUpdateDate = CURRENT_TIMESTAMP
+        WHERE id = {response_msg_and_session_state.get('debt_id')}
     """
     print(f'QUERY: {query}')
     conn.run(query)
