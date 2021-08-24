@@ -118,7 +118,7 @@ def get_discount_proposal(response_msg_and_session_state):
         WHERE id = {response_msg_and_session_state.get('debt_id')}
     """
     print(f'QUERY: {query}')
-    cursor.execute(query).fetchall()
+    cursor.execute(query)
 
     # get discount amount
     query = f"""

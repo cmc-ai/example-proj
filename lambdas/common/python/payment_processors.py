@@ -70,7 +70,7 @@ class SwerveProcessor:
             lastUpdateDate = CURRENT_TIMESTAMP
             WHERE debtId = {self.debt_id}
         """
-        cursor.execute(query).fetchall()
+        cursor.execute(query)
         cursor.close()
 
         return payment_link, expiration_dt
