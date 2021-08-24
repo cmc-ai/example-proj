@@ -71,6 +71,7 @@ class SwerveProcessor:
             WHERE debtId = {self.debt_id}
         """
         pg_conn.run(query)
+        pg_conn.commit()
 
         cursor.close()
         return payment_link, expiration_dt

@@ -83,11 +83,6 @@ CREATE TABLE IF NOT EXISTS APICall (
 
 --- Borrowers
 
-UPDATE Debt SET
-discountExpirationDateTime = TO_TIMESTAMP('2021-08-25 09:29:27', 'YYYY-MM-DD HH:MI:SS'),
-lastUpdateDate = CURRENT_TIMESTAMP
-WHERE id = 1
-
 CREATE TABLE IF NOT EXISTS Debt (
     id                  SERIAL,
     clientId            int NOT NULL,

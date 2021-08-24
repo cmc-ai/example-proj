@@ -118,6 +118,7 @@ def get_discount_proposal(response_msg_and_session_state):
     """
     print(f'QUERY: {query}')
     conn.run(query)
+    conn.commit()
 
     # get discount amount
     query = f"""
