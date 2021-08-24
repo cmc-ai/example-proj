@@ -99,7 +99,6 @@ CREATE TABLE IF NOT EXISTS Debt (
 
     PRIMARY KEY (id)
 );
-select * from debt;
 
 CREATE TABLE IF NOT EXISTS Borrower (
     id          SERIAL,

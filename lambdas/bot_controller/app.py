@@ -107,7 +107,6 @@ def get_discount_proposal(response_msg_and_session_state):
     global pg_conn
     global rds_client
     conn = get_or_create_pg_connection(pg_conn, rds_client)
-    cursor = conn.cursor()
 
     # save new discount_expiration_dt
     discount_exp_dt = datetime.now() + timedelta(hours=DEFAULT_DISCOUNT_EXPIRATION_HOURS)
@@ -118,7 +117,7 @@ def get_discount_proposal(response_msg_and_session_state):
         WHERE id = {response_msg_and_session_state.get('debt_id')}
     """
     print(f'QUERY: {query}')
-    cursor.execute(query)
+    conn.run(query)
 
     # get discount amount
     query = f"""
@@ -126,6 +125,7 @@ def get_discount_proposal(response_msg_and_session_state):
                     FROM Debt d
                     WHERE d.id = {response_msg_and_session_state.get('debt_id')}
                     """
+    cursor = conn.cursor()
     rows = cursor.execute(query).fetchall()
     cursor.close()
 

@@ -70,9 +70,9 @@ class SwerveProcessor:
             lastUpdateDate = CURRENT_TIMESTAMP
             WHERE debtId = {self.debt_id}
         """
-        cursor.execute(query)
-        cursor.close()
+        pg_conn.run(query)
 
+        cursor.close()
         return payment_link, expiration_dt
 
     def post_payment_request(self, amount, expiration_dt):
