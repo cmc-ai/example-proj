@@ -29,3 +29,10 @@ class ChatbotPlaceholder(Enum):
     DebtDetails = '_DEBT_DETAILS_'
     DebtDiscount = '_DEBT_DISCOUNT_'
     NotEnoughMoney = '_NOT_ENOUGH_MONEY_'
+
+
+class ChatbotContext(Enum):
+    StartConversation = 'StartConversation'
+    InitialNegativeIntent_fulfilled = 'InitialNegativeIntent_fulfilled'
+    InitialpositiveIntent_fulfilled = 'InitialpositiveIntent_fulfilled'
+    DiscountIntent_fulfilled = 'DiscountIntent_fulfilled'

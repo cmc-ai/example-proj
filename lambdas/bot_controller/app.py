@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 
 # this dependencies are deployed to /opt/python by Lambda Layers
-from constants import ChatbotPlaceholder
+from constants import ChatbotPlaceholder, ChatbotContext
 from dynamo_models import DebtRecordModel
 from helper_functions import get_or_create_pg_connection, send_sms
 # from payment_processors import SwerveProcessor
@@ -26,7 +26,7 @@ DEFAULT_DISCOUNT_EXPIRATION_HOURS = 24
 def find_or_create_debt_state(response_msg_and_session_state):
     debt_id = response_msg_and_session_state.get('debt_id')
     borrower_id = response_msg_and_session_state.get('borrower_id')
-    is_first_entrance = False  # for simplicity, move to Aurora later
+    is_initial_message = False  # for simplicity, move to Aurora later
 
     debt_records = [d for d in DebtRecordModel.query(debt_id)]
 
@@ -38,12 +38,12 @@ def find_or_create_debt_state(response_msg_and_session_state):
         debt_record = DebtRecordModel(debt_id=debt_id,
                                       borrower_id=borrower_id,
                                       aws_lex_session_id=str(uuid.uuid4()))  # generate uuid for a new session
-        is_first_entrance = True
+        is_initial_message = True
         print(f'Add Debt {debt_record.attribute_values} to Table')
         debt_record.save()
 
     state = debt_record.attribute_values  # convert to dict
-    state.update({'is_first_entrance': is_first_entrance})
+    state.update({'is_initial_message': is_initial_message})
     return state
 
 
@@ -173,6 +173,16 @@ def call_chatbot(response_msg_and_session_state):
     message = response_msg_and_session_state.get('messageBody')
     aws_lex_session_id = response_msg_and_session_state.get('aws_lex_session_id')
 
+    session_state = {}
+    if response_msg_and_session_state.get('is_initial_message', True):
+        # add one-time StartConversation context
+        session_state = {
+            'activeContexts': [{'name': ChatbotContext.StartConversation.value,
+                                'timeToLive': {'turnsToLive': 1, 'timeToLiveInSeconds': 86400},
+                                'contextAttributes': {}}
+                               ]
+        }
+
     print(f'Calling the chatbot bot_id {bot_id} bot_alias_id {bot_alias_id} locale_id {locale_id}')
     chatbot_response = lex_client.recognize_text(
         botId=bot_id,
@@ -180,7 +190,7 @@ def call_chatbot(response_msg_and_session_state):
         localeId=locale_id,
         sessionId=aws_lex_session_id,
         text=message,
-        sessionState={},
+        sessionState=session_state,
         requestAttributes={}
     )
     print(f'Chatbot response: {chatbot_response}')
@@ -199,10 +209,7 @@ def lambda_handler(event, context):
         print(f'Incoming message and session state: {response_msg_and_session_state}')
 
         # process the msg+state with Lex
-        if response_msg_and_session_state.get('is_first_entrance', True):
-            new_msg = start_conversation(response_msg_and_session_state)
-        else:
-            new_msg = call_chatbot(response_msg_and_session_state)
+        new_msg = call_chatbot(response_msg_and_session_state)
 
         # send and log the new message TO originationNumber FROM destinationNumber
         new_destinationNumber = response_msg_and_session_state.get('originationNumber')

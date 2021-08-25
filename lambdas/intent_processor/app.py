@@ -49,7 +49,7 @@ def process_fallback(event: dict):
     print('Process Fallback Fulfillment')
     session_state = fill_session_state(event.get('sessionState').copy())
     messages = [{'contentType': 'PlainText',
-                 'content': 'Cannot recognize your intent. To make a payment, reply PAYMENT. To know more about debt, reply DETAIL'}]
+                 'content': 'Cannot recognize your intent. Please answer more precisely.'}]
 
     response = {
         'sessionState': session_state,
@@ -97,22 +97,26 @@ def process_not_enough_money_intent(event: dict):
 def lambda_handler(event, context):
     print(event)
     '''
-    {'sessionId': '630063752049475', 
-    'inputTranscript': 'detail', 
-    'interpretations': [{'intent': {'slots': {}, 'confirmationState': 'None', 'name': 'DetailsIntent', 'state': 'ReadyForFulfillment'}, 'nluConfidence': 1.0}, 
+    {'sessionId': '630063752049469', 
+    'inputTranscript': 'yes', 
+    'interpretations': [{'intent': {'slots': {}, 'confirmationState': 'None', 'name': 'InitialPositiveIntent', 'state': 'ReadyForFulfillment'}, 'nluConfidence': 1.0}, 
+                        {'intent': {'slots': {}, 'confirmationState': 'None', 'name': 'DiscountIntent', 'state': 'ReadyForFulfillment'}, 'nluConfidence': 0.25}, 
+                        {'intent': {'slots': {}, 'confirmationState': 'None', 'name': 'PaymentIntent', 'state': 'ReadyForFulfillment'}, 'nluConfidence': 0.16}, 
                         {'intent': {'slots': {}, 'confirmationState': 'None', 'name': 'FallbackIntent', 'state': 'ReadyForFulfillment'}}, 
-                        {'intent': {'slots': {}, 'confirmationState': 'None', 'name': 'PaymentIntent', 'state': 'ReadyForFulfillment'}, 'nluConfidence': 0.44}, 
-                        {'intent': {'slots': {}, 'confirmationState': 'None', 'name': 'DiscountIntent', 'state': 'ReadyForFulfillment'}, 'nluConfidence': 0.36}], 
+                        {'intent': {'slots': {}, 'confirmationState': 'None', 'name': 'InitialNegativeIntent', 'state': 'ReadyForFulfillment'}, 'nluConfidence': 0.09}
+                        ], 
     'responseContentType': 'text/plain; charset=utf-8', 
     'invocationSource': 'FulfillmentCodeHook', 
     'messageVersion': '1.0', 
-    'sessionState': {'intent': {'slots': {}, 
-                                'confirmationState': 'None', 
-                                'name': 'DetailsIntent', 
-                                'state': 'ReadyForFulfillment'}, 
-                    'originatingRequestId': '8f0a1ced-3592-48df-abaf-1634bcf0c279'}, 
-    'inputMode': 'Text', 
-    'bot': {'aliasId': 'TSTALIASID', 'aliasName': 'TestBotAlias', 'name': 'TestBot', 'version': 'DRAFT', 'localeId': 'en_US', 'id': 'A9ENAISYXZ'}}
+    'sessionState': {'activeContexts': [{'timeToLive': {'turnsToLive': 3, 'timeToLiveInSeconds': 86391}, 'name': 'InitialpositiveIntent_fulfilled', 'contextAttributes': {}}, 
+                                        {'timeToLive': {'turnsToLive': 4, 'timeToLiveInSeconds': 86399}, 'name': 'InitialNegativeIntent_fulfilled', 'contextAttributes': {}}
+                                        ], 
+                    'intent': {'slots': {}, 'confirmationState': 'None', 'name': 'InitialPositiveIntent', 'state': 'ReadyForFulfillment'}, 
+                    'originatingRequestId': 'de28f4cc-db5e-41d2-8bca-8af325b77880'
+                    }, 
+    'bot': {'aliasId': 'TSTALIASID', 'aliasName': 'TestBotAlias', 'name': 'TestBot', 'version': 'DRAFT', 'localeId': 'en_US', 'id': 'A9ENAISYXZ'}, 
+    'inputMode': 'Text'
+    }
     '''
 
     intent = event.get('sessionState').get('intent').get('name')
