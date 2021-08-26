@@ -22,6 +22,7 @@ class SwerveProcessor:
         self.accountSid = os.getenv('SWERVE_ACCOUNT_SID')
         self.username = os.getenv('SWERVE_USERNAME')
         self.api_key = os.getenv('SWERVE_API_KEY')
+        self.finish_url = os.getenv('SWERVE_FINISH_URL')
         self.default_exp_minutes = DEFAULT_EXPIRATION_MINUTES
 
     def get_or_create_payment_link(self, pg_conn):
@@ -54,14 +55,14 @@ class SwerveProcessor:
         """
         cursor = pg_conn.cursor()
         rows = cursor.execute(query).fetchall()
+        cursor.close()
         exp_minutes, debt_otstanding_balance, debt_discount, debt_discount_expiration_dt = rows[0] if rows else (
             self.default_exp_minutes, 0.0, 0, datetime.now())
 
         expiration_dt = datetime.now() + timedelta(minutes=exp_minutes)
-        payment_link = self.post_payment_request(amount=_calc_payment_amount(debt_otstanding_balance,
-                                                                             debt_discount,
-                                                                             debt_discount_expiration_dt),
-                                                 expiration_dt=expiration_dt)
+        amount = _calc_payment_amount(debt_otstanding_balance, debt_discount, debt_discount_expiration_dt)
+
+        payment_form_record = self.post_payment_form()
 
         query = f"""
             UPDATE DebtPaymentLink SET
@@ -73,21 +74,21 @@ class SwerveProcessor:
         pg_conn.run(query)
         pg_conn.commit()
 
-        cursor.close()
         return payment_link, expiration_dt
 
-    def post_payment_request(self, amount, expiration_dt):
-        source_url = f'https://api.swervepay.com/v/2.0/{self.accountSid}/paymentRequests'
-        expireDate = expiration_dt.strftime('%Y-%m-%d %H:%M:%S')
+    def post_payment_form(self):
+        source_url = f'https://api.swervepay.com/v/2.0/{self.accountSid}/paymentForms'
+        # expireDate = expiration_dt.strftime('%Y-%m-%d %H:%M:%S')
+        form_name = f'form_debt_id_{self.debt_id}'
 
-        response = requests.post(source_url, data={'transactionAmount': amount,
-                                                   'expireDate': expireDate},
+        response = requests.post(source_url, data={'formName': form_name,
+                                                   'finishUrl': self.finish_url},
                                  auth=HTTPBasicAuth(self.username, self.api_key))
         print('Payment Request: ', response.status_code, response.reason, response.text)
 
-        data = json.loads(response.text).get('paymentRequest')
-        return data.get('url'), data.get('accessCode')
+        data = json.loads(response.text).get('paymentForm')
+        return data
 
-#
+
 # sp = SwerveProcessor(123)
-# print(sp.post_payment_request(14.50, datetime.now() + timedelta(minutes=55)))
+# print(sp.post_payment_form())
