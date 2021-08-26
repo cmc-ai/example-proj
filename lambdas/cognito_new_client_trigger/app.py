@@ -1,3 +1,10 @@
+import boto3
+from helper_functions import get_or_create_pg_connection
+
+
+rds_client = boto3.client('rds')
+pg_conn = None
+
 
 def lambda_handler(event, context):
     print(event)
@@ -26,4 +33,55 @@ def lambda_handler(event, context):
     }
     """
 
-    return
+    udata = event.get('request', {}).get('userAttributes', {})
+    user_name = event.get('userName')
+    if not udata or not user_name:
+        print(f'No User Data found, return')
+        return event
+
+    global pg_conn
+    global rds_client
+    conn = get_or_create_pg_connection(pg_conn, rds_client)
+
+    insert_client_query = f"""
+        INSERT INTO Client
+            (username, phoneNum, email, organization, createDate, lastUpdateDate)
+        VALUES
+            (   {user_name},
+                {udata.get('phone_number')},
+                {udata.get('email')},
+                {udata.get('custom:organization')},
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            )
+    """
+    conn.run(insert_client_query)
+    conn.commit()
+
+    select_id_query = f"""
+        SELECT id, username FROM Client
+        WHERE username = '{user_name}'
+        AND createDate = (SELECT MAX(createDate) FROM Client WHERE username = '{user_name}')
+    """
+    cursor = conn.cursor()
+    rows = cursor.execute(select_id_query).fetchall()
+    cursor.close()
+    clinet_id, client_username = rows[0] if rows else (None, '')
+
+    if not clinet_id:
+        return event
+
+    insert_funding_acc_query = f"""
+        INSERT INTO ClientFundingAccount
+            (clientId, paymentProcessor, createDate, lastUpdateDate)
+        VALUES
+            (   {clinet_id},
+                {udata.get('custom:payment')},
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            )
+    """
+    conn.run(insert_funding_acc_query)
+    conn.commit()
+
+    return event

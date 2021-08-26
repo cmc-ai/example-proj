@@ -20,7 +20,7 @@ DROP TABLE IF EXISTS JourneyExeActivity CASCADE;
 CREATE TABLE IF NOT EXISTS Client (
     id          SERIAL,
     username    char(50) NOT NULL,
-    password    char(50) NOT NULL,
+    password    char(50),
     token       char(200),
     firstName   char(50),
     lastName    char(50),
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS Client (
 CREATE TABLE IF NOT EXISTS ClientFundingAccount (
     id              SERIAL,
     clientId        int NOT NULL,
-    accountType     char(20) NOT NULL,
-    summary         char(50) NOT NULL,
+    accountType     char(20),
+    summary         char(50),
     paymentProcessor    char(200),
     token           char(200),
     createDate      timestamp,
@@ -283,4 +283,3 @@ ALTER TABLE JourneyExeActivity
 ADD FOREIGN KEY (debtId) REFERENCES Debt(id) ON DELETE CASCADE,
 ADD FOREIGN KEY (journeyId) REFERENCES Journey(id) ON DELETE CASCADE,
 ADD FOREIGN KEY (journeyEntryActivityId) REFERENCES JourneyEntryActivity(id) ON DELETE CASCADE;
-
