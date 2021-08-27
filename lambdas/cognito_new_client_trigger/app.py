@@ -48,10 +48,10 @@ def lambda_handler(event, context):
         INSERT INTO Client
             (username, phoneNum, email, organization, createDate, lastUpdateDate)
         VALUES
-            (   {user_name},
-                {udata.get('phone_number')},
-                {udata.get('email')},
-                {udata.get('custom:organization')},
+            (   '{user_name}',
+                '{udata.get('phone_number')}',
+                '{udata.get('email')}',
+                '{udata.get('custom:organization')}',
                 CURRENT_TIMESTAMP,
                 CURRENT_TIMESTAMP
             )
@@ -80,7 +80,7 @@ def lambda_handler(event, context):
             (clientId, paymentProcessor, createDate, lastUpdateDate)
         VALUES
             (   {clinet_id},
-                {udata.get('custom:payment')},
+                '{udata.get('custom:payment')}',
                 CURRENT_TIMESTAMP,
                 CURRENT_TIMESTAMP
             )
