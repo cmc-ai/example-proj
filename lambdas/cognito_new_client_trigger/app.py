@@ -43,6 +43,7 @@ def lambda_handler(event, context):
     global rds_client
     conn = get_or_create_pg_connection(pg_conn, rds_client)
 
+    print(f'Inserting into Client')
     insert_client_query = f"""
         INSERT INTO Client
             (username, phoneNum, email, organization, createDate, lastUpdateDate)
@@ -58,6 +59,7 @@ def lambda_handler(event, context):
     conn.run(insert_client_query)
     conn.commit()
 
+    print(f'Selecting id from Client')
     select_id_query = f"""
         SELECT id, username FROM Client
         WHERE username = '{user_name}'
@@ -69,8 +71,10 @@ def lambda_handler(event, context):
     clinet_id, client_username = rows[0] if rows else (None, '')
 
     if not clinet_id:
+        print(f'No clinet.id found, return')
         return event
 
+    print(f'Inserting into ClientFundingAccount')
     insert_funding_acc_query = f"""
         INSERT INTO ClientFundingAccount
             (clientId, paymentProcessor, createDate, lastUpdateDate)
