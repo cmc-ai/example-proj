@@ -12,7 +12,8 @@ from datetime import datetime, timedelta
 # this dependencies are deployed to /opt/python by Lambda Layers
 from constants import ChatbotPlaceholder, ChatbotContext
 from dynamo_models import DebtRecordModel
-from helper_functions import get_or_create_pg_connection, send_sms
+from helper_functions import get_or_create_pg_connection
+from sms_functions import send_sms
 # from payment_processors import SwerveProcessor
 
 pinoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))

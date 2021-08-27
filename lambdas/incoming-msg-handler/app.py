@@ -4,7 +4,8 @@ import os
 import boto3
 
 # this dependency is deployed to /opt/python by Lambda Layers
-from helper_functions import get_or_create_pg_connection, log_sms, dt_to_ts
+from helper_functions import get_or_create_pg_connection, dt_to_ts
+from sms_functions import log_sms
 
 sqs_resource = boto3.resource('sqs')
 rds_client = boto3.client('rds')

@@ -1,4 +1,3 @@
-import base64
 import json
 import os
 from datetime import datetime, timedelta
@@ -89,6 +88,3 @@ class SwerveProcessor:
         data = json.loads(response.text).get('paymentForm')
         return data
 
-
-# sp = SwerveProcessor(123)
-# print(sp.post_payment_form())
