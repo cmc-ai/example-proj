@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS ClientConfiguration (
 CREATE TABLE IF NOT EXISTS APICall (
     id              SERIAL,  -- int? bigint?
     clientId        int NOT NULL,
-    callDateTime    timestamp NOT NULL,
+    callDateTimeUTC    timestamp NOT NULL,
     method          char(10),
     url             char(100),
     payload         char(500),
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS Debt (
     outstandingBalance  DECIMAL(12,2) NOT NULL,
     totalPayment        DECIMAL(12,2),
     discount            DECIMAL(12,2),
-    discountExpirationDateTime  timestamp,
+    discountExpirationDateTimeUTC  timestamp,
     description         TEXT,
 
     createDate      timestamp,
@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS BorrowerFundingAccount (
 CREATE TABLE IF NOT EXISTS DebtPayment (  -- Debt Activity
     id                  SERIAL,
     debtId              int NOT NULL,
-    paymentDateTime     timestamp NOT NULL,
+    paymentDateTimeUTC     timestamp NOT NULL,
     amount              DECIMAL(12,2) NOT NULL,
     paymentStatus       char(20) NOT NULL,
     fundingAccSummary   char(50) NOT NULL,
@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS DebtPaymentLink (
     id                  SERIAL,
     debtId              int NOT NULL,
     url                 char(100),
-    expirationDateTime  timestamp,
+    expirationDateTimeUTC  timestamp,
 
     createDate          timestamp,
     lastUpdateDate      timestamp,
@@ -190,8 +190,8 @@ CREATE TABLE IF NOT EXISTS JourneyEntryActivity (
     id          SERIAL,
     journeyId   int NOT NULL,
     debtId      int NOT NULL,
-    entryDateTime   timestamp NOT NULL,
-    exitDateTime    timestamp,
+    entryDateTimeUTC   timestamp NOT NULL,
+    exitDateTimeUTC    timestamp,
 
     createDate      timestamp,
     lastUpdateDate  timestamp,
@@ -226,7 +226,7 @@ CREATE TABLE IF NOT EXISTS JourneyExeActivity (
     journeyId   int NOT NULL,
     debtId      int NOT NULL,
     journeyEntryActivityId      int NOT NULL,
-    entryDateTime   timestamp NOT NULL,
+    entryDateTimeUTC   timestamp NOT NULL,
     chatSessionID   CHAR(200),  -- ???
 
     createDate      timestamp,

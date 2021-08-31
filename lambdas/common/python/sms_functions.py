@@ -36,13 +36,13 @@ def send_sms(pinoint_client, message, originationNumber, destinationNumber, borr
     else:
         print("Message sent: " + response['MessageResponse']['Result'][destinationNumber]['MessageId'])
         if borrower_id:
-            log_sms(borrower_id, int(datetime.now().timestamp()), originationNumber, destinationNumber, message)
+            log_sms(borrower_id, int(datetime.utcnow().timestamp()), originationNumber, destinationNumber, message)
 
 
-def log_sms(borrower_id, event_ts, origination_number, destination_number, text):
-    print(f'Logging message to Dynamo: borrower_id {borrower_id} event_ts {event_ts}')
+def log_sms(borrower_id, event_utc_ts, origination_number, destination_number, text):
+    print(f'Logging message to Dynamo: borrower_id {borrower_id} event_utc_ts {event_utc_ts}')
     item = BorrowerMessageModel(borrower_id=borrower_id,
-                                event_ts=event_ts,
+                                event_utc_ts=event_utc_ts,
                                 origination_number=origination_number,
                                 destination_number=destination_number,
                                 text=text)

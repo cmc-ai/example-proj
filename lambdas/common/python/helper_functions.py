@@ -1,6 +1,6 @@
 import os
 import pg8000
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def get_or_create_pg_connection(pg_conn, rds_client):
@@ -32,7 +32,7 @@ def get_or_create_pg_connection(pg_conn, rds_client):
         return None
 
 
-def dt_to_ts(str_dt: str):
+def dt_to_utc_ts(str_dt: str):
     # '2021-08-18T11:41:55.285Z'
-    dt = datetime.strptime(str_dt, '%Y-%m-%dT%H:%M:%S.%fZ')
+    dt = datetime.strptime(str_dt, '%Y-%m-%dT%H:%M:%S.%fZ').astimezone(tz=timezone.utc)
     return int(dt.timestamp())

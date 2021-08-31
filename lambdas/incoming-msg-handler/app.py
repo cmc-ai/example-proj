@@ -4,7 +4,7 @@ import os
 import boto3
 
 # this dependency is deployed to /opt/python by Lambda Layers
-from helper_functions import get_or_create_pg_connection, dt_to_ts
+from helper_functions import get_or_create_pg_connection, dt_to_utc_ts
 from sms_functions import log_sms
 
 sqs_resource = boto3.resource('sqs')
@@ -58,7 +58,7 @@ def lambda_handler(event, context):
     for record in event['Records']:
         if record.get('Sns'):
             response_msg = json.loads(record['Sns']['Message'])
-            response_ts = dt_to_ts(record['Sns']['Timestamp'])
+            response_ts = dt_to_utc_ts(record['Sns']['Timestamp'])  # local_tz --> utc
             originationNumber = response_msg['originationNumber']
             destinationNumber = response_msg['destinationNumber']
             messageBody = response_msg['messageBody']

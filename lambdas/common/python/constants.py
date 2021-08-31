@@ -3,6 +3,8 @@ from enum import Enum
 INV_SRC_FULFILLMENT = 'FulfillmentCodeHook'
 INV_SRC_DIALOG = 'DialogCodeHook'
 
+PAYMENT_LINK_HASH_PATTERN = 'debt_id:amount:expiration_utc_ts'
+
 
 class ChatbotIntent(Enum):
     InitialPositiveIntent = 'InitialPositiveIntent'

@@ -46,7 +46,7 @@ VALUES
     ('status', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP); -- 7
 
 INSERT INTO JourneyEntryActivity
-    (journeyId, debtId, entryDateTime, createDate, lastUpdateDate)
+    (journeyId, debtId, entryDateTimeUTC, createDate, lastUpdateDate)
 VALUES
     (1, 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), -- 2
     (1, 4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), -- 3

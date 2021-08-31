@@ -30,5 +30,11 @@ VALUES
 INSERT INTO Journey (awsId, clientId,  createDate, lastUpdateDate)
 VALUES ('', 1,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
-INSERT INTO JourneyEntryActivity (journeyId, debtId, entryDateTime, createDate, lastUpdateDate)
+INSERT INTO JourneyEntryActivity (journeyId, debtId, entryDateTimeUTC, createDate, lastUpdateDate)
 VALUES (1, 1,  CURRENT_TIMESTAMP,  CURRENT_TIMESTAMP,  CURRENT_TIMESTAMP);
+
+--select column_name, data_type, character_maximum_length, column_default, is_nullable
+--from INFORMATION_SCHEMA.COLUMNS where table_name = 'clientfundingaccount';
+
+--select * from client;
+--select * from clientfundingaccount;

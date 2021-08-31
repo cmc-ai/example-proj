@@ -1,2 +1,4 @@
 pg8000
 pynamodb
+# not needed
+Crypto

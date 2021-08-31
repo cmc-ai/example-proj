@@ -14,10 +14,11 @@ from constants import ChatbotPlaceholder, ChatbotContext
 from dynamo_models import DebtRecordModel
 from helper_functions import get_or_create_pg_connection
 from sms_functions import send_sms
-# from payment_processors import SwerveProcessor
+from payment_controller import DebtPaymentController
 
 pinoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))
 lex_client = boto3.client('lexv2-runtime')
+param_store_client = boto3.client('ssm')
 rds_client = boto3.client('rds')
 pg_conn = None
 
@@ -104,10 +105,10 @@ def get_payment_link(response_msg_and_session_state):
     conn = get_or_create_pg_connection(pg_conn, rds_client)
 
     print(f'Generating Payment Link')
-    # payment_proc = SwerveProcessor(response_msg_and_session_state.get('debt_id'))
-    # link = payment_proc.get_or_create_payment_link(pg_conn=conn)
-    link = 'https://some_link.com'
-    return link
+    p_controller = DebtPaymentController(response_msg_and_session_state.get('debt_id'))
+    payment_link, exp_minutes = p_controller.get_or_create_payment_link(pg_conn=conn, ssm_client=param_store_client)
+
+    return f'Link will be expired in {exp_minutes} minutes: {payment_link}'
 
 
 def get_discount_proposal(response_msg_and_session_state):
@@ -119,7 +120,7 @@ def get_discount_proposal(response_msg_and_session_state):
     discount_exp_dt = datetime.now() + timedelta(hours=DEFAULT_DISCOUNT_EXPIRATION_HOURS)
     query = f"""
         UPDATE Debt SET
-        discountExpirationDateTime = TO_TIMESTAMP('{discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')}', 'YYYY-MM-DD HH:MI:SS'),
+        discountExpirationDateTime = TO_TIMESTAMP('{discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')}', 'YYYY-MM-DD HH24:MI:SS'),
         lastUpdateDate = CURRENT_TIMESTAMP
         WHERE id = {response_msg_and_session_state.get('debt_id')}
     """
@@ -168,9 +169,9 @@ def process_placeholders(msg: str, response_msg_and_session_state: dict) -> str:
 
 
 def call_chatbot(response_msg_and_session_state):
-    bot_id = os.getenv('AWS_LEX_BOT_ID', 'A9ENAISYXZ')
-    bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID', 'TSTALIASID')
-    locale_id = os.getenv('AWS_LEX_LOCALE_ID', 'en_US')
+    bot_id = os.getenv('AWS_LEX_BOT_ID')
+    bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID')
+    locale_id = os.getenv('AWS_LEX_LOCALE_ID')
     message = response_msg_and_session_state.get('messageBody')
     aws_lex_session_id = response_msg_and_session_state.get('aws_lex_session_id')
 

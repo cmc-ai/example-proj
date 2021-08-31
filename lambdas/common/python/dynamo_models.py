@@ -20,7 +20,19 @@ class BorrowerMessageModel(Model):
         region = os.getenv('AWS_REGION')
 
     borrower_id = NumberAttribute(hash_key=True)
-    event_ts = NumberAttribute(range_key=True)
+    event_utc_ts = NumberAttribute(range_key=True)
     origination_number = UnicodeAttribute()
     destination_number = UnicodeAttribute()
     text = UnicodeAttribute()
+
+
+class PaymentLinkModel(Model):
+    class Meta:
+        table_name = os.getenv('DYNAMODB_PAYMENT_LINK_TABLE')
+        region = os.getenv('AWS_REGION')
+
+    debt_id = NumberAttribute(hash_key=True)
+    expiration_utc_ts = NumberAttribute()
+    link = UnicodeAttribute()
+    amount = NumberAttribute()
+    hash_pattern = UnicodeAttribute()
