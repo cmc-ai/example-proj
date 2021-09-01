@@ -64,7 +64,7 @@ class DebtPaymentController:
 
         # get link and exp_utc_dt from Dynamo
         try:
-            payment_link_item = PaymentLinkModel.query(debt_id=self.debt_id)
+            payment_link_item = [p for p in PaymentLinkModel.query(debt_id=self.debt_id)][0]
             print(f'PaymentLink exists, {payment_link_item.attribute_value}')
             payment_link = payment_link_item.attribute_values.get('link')
             expiration_utc_unix_ts = int(payment_link_item.attribute_values.get('expiration_utc_ts'))
