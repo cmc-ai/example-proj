@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS DebtPayment (  -- Debt Activity
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS DebtPaymentLink (
+CREATE TABLE IF NOT EXISTS DebtPaymentLink (   -- TODO Not needed
     id                  SERIAL,
     debtId              int NOT NULL,
     url                 char(100),
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS DebtPaymentLink (
 
 -- Journey & ChatBot
 
-CREATE TABLE IF NOT EXISTS Journey (
+CREATE TABLE IF NOT EXISTS Journey ( -- TODO Not needed
     id          SERIAL,
     awsId       CHAR(50),
     clientId    int,
@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS Journey (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS Chatbot (                        -- where to use ?
+CREATE TABLE IF NOT EXISTS Chatbot (  -- TODO Not needed
     id              SERIAL,
     awsId           CHAR(50),
     clientId        int,
@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS JourneyDebtStatus (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS JourneyExeActivity (
+CREATE TABLE IF NOT EXISTS JourneyExeActivity (  -- TODO Not needed
     id          SERIAL,
     journeyId   int NOT NULL,
     debtId      int NOT NULL,

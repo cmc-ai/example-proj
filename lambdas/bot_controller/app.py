@@ -146,6 +146,7 @@ def get_discount_proposal(response_msg_and_session_state):
 def redirect_on_agent(response_msg_and_session_state):
     # TODO: remove debt record from Dynamo ???
     # TODO:  close Journey(Entry)ExeActivity in Aurora ???
+    # TODO: add DebtStatus 'redirected'
 
     msg = f'OK, our agent will contact you shortly'
     return msg
