@@ -112,9 +112,8 @@ class DebtPaymentController:
         return payment_link, exp_minutes
 
     def _create_payment_link(self, ssm_client, amount: float, expiration_utc_dt: int):
-        ssm_payment_link_domen_key = os.getenv('SSM_PAYMENT_LINK_DOMEN_KEY', '/chatbot-dev/dev/cf/domen')
-        ssm_payment_link_encryption_key = os.getenv('SSM_PAYMENT_LINK_ENCRYPTION_KEY',
-                                                    '/chatbot-dev/dev/cf/encryption-key')
+        ssm_payment_link_domen_key = os.getenv('SSM_PAYMENT_LINK_DOMEN_KEY')
+        ssm_payment_link_encryption_key = os.getenv('SSM_PAYMENT_LINK_ENCRYPTION_KEY')
 
         domen = ssm_client.get_parameter(Name=ssm_payment_link_domen_key, WithDecryption=False)['Parameter']['Value']
         encryption_key = \

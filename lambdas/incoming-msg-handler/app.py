@@ -40,7 +40,7 @@ def find_debt_by_number(origination_number: str):
             FROM Debt d JOIN Borrower b on d.id = b.debtId
             JOIN JourneyEntryActivity jea on d.id = jea.debtId
             where b.phoneNum = '{origination_number}'
-            and jea.exitDateTime IS NULL
+            and jea.exitDateTimeUTC IS NULL
         """
     cursor = conn.cursor()
     rows = cursor.execute(query).fetchall()
