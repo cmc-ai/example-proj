@@ -32,7 +32,7 @@ class PaymentLinkModel(Model):
         region = os.getenv('AWS_REGION')
 
     debt_id = NumberAttribute(hash_key=True)
-    expiration_utc_ts = NumberAttribute()
+    expiration_utc_ts = NumberAttribute(range_key=True)
     link = UnicodeAttribute()
     amount = NumberAttribute()
     hash_pattern = UnicodeAttribute()
