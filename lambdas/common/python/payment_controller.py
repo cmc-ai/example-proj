@@ -84,9 +84,10 @@ class DebtPaymentController:
         print(f'Querying debt details and configs')
         query = f"""
             SELECT cc.linkExpMinutes, d.outstandingBalance, d.discount, d.discountExpirationDateTimeUTC
-            FROM Debt d JOIN Client c on d.clientId = c.id 
-            JOIN ClientPortfolio cp on c.id = cp.clientId JOIN ClientConfiguration cp.id = cc.clientPortfolioId
-            WHERE debtId = {self.debt_id}
+            FROM Debt d JOIN Client c   on d.clientId = c.id 
+            JOIN ClientPortfolio cp     on c.id = cp.clientId 
+            JOIN ClientConfiguration cc on cp.id = cc.clientPortfolioId
+            WHERE d.id = {self.debt_id}
         """
         cursor = pg_conn.cursor()
         rows = cursor.execute(query).fetchall()
