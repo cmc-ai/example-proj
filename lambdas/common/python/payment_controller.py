@@ -26,20 +26,20 @@ def encrypt_payment_link(link, encryption_key):
     returns hash, and crc32(rsa(hash, encryption_key))
     """
     link_bytes = link.encode()
-    link_encoded = urlsafe_b64encode(link_bytes)
+    link_urlsafe_encoded = urlsafe_b64encode(link_bytes)
 
     pub_key = RSA.importKey(encryption_key, passphrase=None).publickey()
     encrypted = pub_key.encrypt(link_bytes, None)[0]
     checksum = _crc32(encrypted)
 
-    return link_encoded, checksum
+    return link_urlsafe_encoded.decode(), checksum
 
 
-def decrypt_payment_link(link_encoded, encryption_key, original_checksum):
+def decrypt_payment_link(link_urlsafe_encoded, encryption_key, original_checksum):
     """
     returns decoded link, and if provided checksum matches crc32(rsa(hash, encryption_key))
     """
-    link_bytes = urlsafe_b64decode(link_encoded)
+    link_bytes = urlsafe_b64decode(link_urlsafe_encoded.encode())
     link = link_bytes.decode()
 
     pub_key = RSA.importKey(encryption_key, passphrase=None).publickey()
@@ -121,7 +121,7 @@ class DebtPaymentController:
         ssm_client.get_parameter(Name=ssm_payment_link_encryption_key, WithDecryption=True)['Parameter']['Value']
 
         link_encoded, checksum = encrypt_payment_link(f'{self.debt_id}:{amount}:{expiration_utc_dt}', encryption_key)
-        link = f"{domen.rstrip('/')}/{link_encoded}/{checksum}"
+        link = f"{domen.rstrip('/')}/{link_encoded}?crc={checksum}"
         return link
 
     # will be handy probably

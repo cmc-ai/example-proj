@@ -170,9 +170,9 @@ def process_placeholders(msg: str, response_msg_and_session_state: dict) -> str:
 
 
 def call_chatbot(response_msg_and_session_state):
-    bot_id = os.getenv('AWS_LEX_BOT_ID')
-    bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID')
-    locale_id = os.getenv('AWS_LEX_LOCALE_ID')
+    bot_id = os.getenv('AWS_LEX_BOT_ID', 'A9ENAISYXZ')
+    bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID', 'TSTALIASID')
+    locale_id = os.getenv('AWS_LEX_LOCALE_ID', 'en_US')
     message = response_msg_and_session_state.get('messageBody')
     aws_lex_session_id = response_msg_and_session_state.get('aws_lex_session_id')
 
