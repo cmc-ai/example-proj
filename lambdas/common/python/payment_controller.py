@@ -65,9 +65,11 @@ class DebtPaymentController:
         # get link and exp_utc_dt from Dynamo
         try:
             payment_link_item = PaymentLinkModel.get(debt_id=self.debt_id)
+            print(f'PaymentLink exists, {payment_link_item.attribute_value}')
             payment_link = payment_link_item.attribute_values.get('link')
             expiration_utc_unix_ts = int(payment_link_item.attribute_values.get('expiration_utc_ts'))
             expiration_utc_dt = datetime.utcfromtimestamp(expiration_utc_unix_ts)
+            print(f'Expiration dt {expiration_utc_dt}')
         except:
             print(f'PaymentLink doesnt exist, will be created')
             payment_link, expiration_utc_dt = None, None
