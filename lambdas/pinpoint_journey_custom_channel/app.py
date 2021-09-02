@@ -1,11 +1,12 @@
-# OS Envs: PINPOINT_ORIGINATION_NUMBER
+# OS Envs: PINPOINT_ORIGINATION_NUMBER_KEY
 # Layers : sms_functions
-# Permissions: Dynamo:write, Pinpoint:send_sms
+# Permissions: Dynamo:write, Pinpoint:send_sms, ParamStore:read
 
 import os
 
 from sms_functions import send_sms
 
+param_store_client = boto3.client('ssm')
 pinoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))
 
 
@@ -41,7 +42,10 @@ def lambda_handler(event, context):
                     }
     }
     """
-    origination_number = os.getenv('PINPOINT_ORIGINATION_NUMBER')
+    ssm_origination_number_key = os.getenv('SSM_PINPOINT_ORIGINATION_NUMBER_KEY',
+                                           '/chatbot-dev/dev/pinpoint/origination_number')
+    origination_number = param_store_client.get_parameter(Name=ssm_origination_number_key,
+                                                          WithDecryption=False)['Parameter']['Value']
 
     endpoints = [extract_data(event.get('Endpoints', {}).get(e)) for e in event.get('Endpoints')]
     for endpoint in endpoints:
