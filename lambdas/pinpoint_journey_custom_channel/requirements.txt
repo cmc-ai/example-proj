@@ -1,0 +1,4 @@
+pynamodb
+# not needed
+# pg8000
+# pycrypto

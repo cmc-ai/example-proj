@@ -66,12 +66,10 @@ class DebtPaymentController:
         try:
             print(f'Searching in DynamoDB')
             payment_link_item = [p for p in PaymentLinkModel.query(self.debt_id)][0]
-            print(f'PaymentLink exists, {payment_link_item}')
-            print(f'PaymentLink exists, {payment_link_item.attribute_values}')
             payment_link = payment_link_item.attribute_values.get('link')
             expiration_utc_unix_ts = int(payment_link_item.attribute_values.get('expiration_utc_ts'))
             expiration_utc_dt = datetime.utcfromtimestamp(expiration_utc_unix_ts)
-            print(f'Expiration dt {expiration_utc_dt}')
+            print(f'PaymentLink exists, {payment_link_item.attribute_values}, Expiration dt utc {expiration_utc_dt}')
         except Exception as e:
             print(e)
             print(f'PaymentLink doesnt exist, will be created')
@@ -80,6 +78,8 @@ class DebtPaymentController:
         if payment_link and expiration_utc_dt:
             if expiration_utc_dt > datetime.utcnow():
                 return payment_link, (expiration_utc_dt - datetime.utcnow()).seconds // 60
+            else:
+                print(f'PaymentLink expired {expiration_utc_dt}')
 
         # if expired or None:
         # 1. get linkExpMinutes value and create new expiration_utc_dt
