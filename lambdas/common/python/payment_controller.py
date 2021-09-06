@@ -126,17 +126,5 @@ class DebtPaymentController:
         ssm_client.get_parameter(Name=ssm_payment_link_encryption_key, WithDecryption=True)['Parameter']['Value']
 
         link_encoded, checksum = encrypt_payment_link(f'{self.debt_id}:{amount}:{expiration_utc_dt}', encryption_key)
-        link = f"{domen.rstrip('/')}/payment/{link_encoded}?crc={checksum}"
+        link = f"{domen.rstrip('/')}/payment/link/{link_encoded}?crc={checksum}"
         return link
-
-    # will be handy probably
-    def _update_aurora(self, pg_conn, payment_link, expiration_utc_dt):
-        query = f"""
-            UPDATE DebtPaymentLink SET
-            url = '{payment_link}',
-            expirationDateTime = TO_TIMESTAMP('{expiration_utc_dt.strftime('%Y-%m-%d %H:%M:%S')}', 'YYYY-MM-DD HH24:MI:SS'),
-            lastUpdateDate = CURRENT_TIMESTAMP
-            WHERE debtId = {self.debt_id}
-        """
-        pg_conn.run(query)
-        pg_conn.commit()
