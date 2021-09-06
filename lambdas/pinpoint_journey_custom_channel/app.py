@@ -4,6 +4,7 @@
 
 import os
 
+import boto3
 from sms_functions import send_sms
 
 param_store_client = boto3.client('ssm')
@@ -21,27 +22,6 @@ def extract_data(endpoint):
 
 def lambda_handler(event, context):
     print(event)
-    """
-    {'Message': {}, 
-    'ApplicationId': '34e7ff51c4824c079b9ab87a6a530c2b', 
-    'ActivityId': 'FLDOzTvdT7', 
-    'ScheduledTime': '2021-09-02T12:09:00Z', 
-    'JourneyId': '432f7206e4894992aaabe00379c17031',
-    'JourneyRunId': 'aa55b04cade34b83b341a7b8b5d455a9', 
-    'Endpoints': {'8': {'ChannelType': 'SMS', 
-                        'Address': '+16502546320', 
-                        'EndpointStatus': 'ACTIVE', 
-                        'OptOut': 'NONE', 
-                        'Location': {'Country': 'US'}, 
-                        'EffectiveDate': '2021-08-27T12:08:00.736Z', 
-                        'User': {'UserId': 'test-user-id-8', 
-                                'UserAttributes': {'FirstName': ['Stan'], 'LastName': ['Nikitin']}
-                                }, 
-                        'CreationDate': '2021-08-27T12:08:00.736Z'
-                        }
-                    }
-    }
-    """
     ssm_origination_number_key = os.getenv('SSM_PINPOINT_ORIGINATION_NUMBER_KEY',
                                            '/chatbot-dev/dev/pinpoint/origination_number')
     origination_number = param_store_client.get_parameter(Name=ssm_origination_number_key,
