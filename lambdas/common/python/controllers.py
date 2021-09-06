@@ -5,9 +5,9 @@ from decimal import Decimal
 class APIController(object):
     def __init__(self, path, headers, params, body, db_conn):
         self.path = path
-        self.headers = headers
-        self.params = params
-        self.body = body
+        self.headers = headers or {}
+        self.params = params or {}
+        self.body = body or {}
         self.db_conn = db_conn
 
     def _build_filter_string(self):
@@ -143,4 +143,3 @@ class ClientAPIController(APIController):
 class OtherAPIController(APIController):
     def get_report(self):
         return {}
-
