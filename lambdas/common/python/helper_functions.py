@@ -36,3 +36,9 @@ def dt_to_utc_ts(str_dt: str):
     # '2021-08-18T11:41:55.285Z'
     dt = datetime.strptime(str_dt, '%Y-%m-%dT%H:%M:%S.%fZ').astimezone(tz=timezone.utc)
     return int(dt.timestamp())
+
+
+def ts_to_utc_dt(ts: int) -> str:
+    # 1631030189
+    dt = datetime.utcfromtimestamp(ts)
+    return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')

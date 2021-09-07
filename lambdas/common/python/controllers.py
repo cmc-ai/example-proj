@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from dynamo_models import BorrowerMessageModel
+from helper_functions import ts_to_utc_dt
 
 LAST_INDEX = -1
 
@@ -116,9 +117,13 @@ class DebtAPIController(APIController):
 
     def get_chat_history(self):
         borrower_id = int(self.path.rstrip('/').split('/')[LAST_INDEX])
-        message_records = [d for d in BorrowerMessageModel.query(borrower_id)]
+        message_records = BorrowerMessageModel.query(borrower_id)
 
-        return message_records
+        messages = [r.attribute_values for r in message_records]
+        for message in messages:
+            message['event_utc_dt'] = ts_to_utc_dt(message.get('event_utc_ts', 0))
+
+        return messages
 
     def get_payment_history(self):
         return {}
@@ -151,9 +156,3 @@ class OtherAPIController(APIController):
     def get_report(self):
         return {}
 
-
-# -----------------
-# import pynamodb
-#
-# controller = DebtAPIController('/api/chat-history/1', {}, {}, {}, None)
-# print(controller.get_chat_history())
