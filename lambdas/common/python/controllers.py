@@ -1,6 +1,10 @@
 from datetime import datetime
 from decimal import Decimal
 
+from dynamo_models import BorrowerMessageModel
+
+LAST_INDEX = -1
+
 
 class APIController(object):
     def __init__(self, path, headers, params, body, db_conn):
@@ -111,7 +115,10 @@ class DebtAPIController(APIController):
         return {}
 
     def get_chat_history(self):
-        return {}
+        borrower_id = int(self.path.rstrip('/').split('/')[LAST_INDEX])
+        message_records = [d for d in BorrowerMessageModel.query(borrower_id)]
+
+        return message_records
 
     def get_payment_history(self):
         return {}
@@ -143,3 +150,10 @@ class ClientAPIController(APIController):
 class OtherAPIController(APIController):
     def get_report(self):
         return {}
+
+
+# -----------------
+# import pynamodb
+#
+# controller = DebtAPIController('/api/chat-history/1', {}, {}, {}, None)
+# print(controller.get_chat_history())

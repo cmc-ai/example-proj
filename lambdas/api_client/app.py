@@ -3,6 +3,7 @@ import json
 import boto3
 
 from controllers import DebtAPIController, ClientAPIController, OtherAPIController
+from helper_functions import get_or_create_pg_connection
 
 DEFAULT_RESPONSE = {"message": "Path is not recognized"}
 
@@ -23,6 +24,8 @@ def build_response(body: dict, code: int = 200):
 
 
 def lambda_handler(event, context):
+    db_conn = get_or_create_pg_connection(pg_conn, rds_client)
+
     print(event)
     """
     {'resource': '/api/debts', 
@@ -78,7 +81,7 @@ def lambda_handler(event, context):
         'body': event.get('body')
     }
     params = {
-        'db_conn': pg_conn
+        'db_conn': db_conn
     }
     params.update(request_params)
 
