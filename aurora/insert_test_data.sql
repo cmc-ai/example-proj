@@ -18,6 +18,10 @@ VALUES
 	(1, 1, 16.38, 4.50, 10.44, 0.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 	(1, 1, 160.38, 40.50, 100.44, 10.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
+INSERT INTO DebtPayment
+(debtId, paymentDateTimeUTC, amount, paymentStatus, fundingAccSummary, paymentProcessor, debtLevel, paymentSource, accountType, createDate, lastUpdateDate)
+values (1, CURRENT_TIMESTAMP, 40.5, 'paymentStatus', 'fundingAccSummary', 'paymentProcessor', 4, 'paymentSource', 'accountType', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+
 -- Borrower
 INSERT INTO Borrower
     (debtId, firstName, lastName, isPrimary, channelType, phoneNum, email,  createDate, lastUpdateDate)

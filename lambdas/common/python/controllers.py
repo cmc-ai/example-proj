@@ -116,7 +116,17 @@ class DebtAPIController(APIController):
         return {}
 
     def get_chat_history(self):
-        borrower_id = int(self.path.rstrip('/').split('/')[LAST_INDEX])
+        debt_id = int(self.path.rstrip('/').split('/')[LAST_INDEX])
+        query = f"""
+        SELECT id FROM Borrower WHERE debtId = {debt_id}
+        """
+        columns, rows = self._execute_select(query)
+        if not rows:
+            print(f'borrower_id is not found for debt_id {debt_id}')
+            return []
+
+        borrower_id = rows[0][0]
+        print(f'Found borrower_id {borrower_id}')
         message_records = BorrowerMessageModel.query(borrower_id)
 
         messages = [r.attribute_values for r in message_records]
@@ -126,7 +136,16 @@ class DebtAPIController(APIController):
         return messages
 
     def get_payment_history(self):
-        return {}
+        debt_id = int(self.path.rstrip('/').split('/')[LAST_INDEX])
+        query = f"""
+        SELECT * 
+        FROM DebtPayment
+        WHERE debtId = {debt_id}
+        """
+        columns, rows = self._execute_select(query)
+        mapped_items = self._map_cols_rows(columns, rows)
+
+        return mapped_items
 
 
 class ClientAPIController(APIController):
@@ -155,4 +174,3 @@ class ClientAPIController(APIController):
 class OtherAPIController(APIController):
     def get_report(self):
         return {}
-
