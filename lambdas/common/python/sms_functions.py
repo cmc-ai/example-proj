@@ -41,9 +41,12 @@ def send_sms(pinoint_client, message, originationNumber, destinationNumber, borr
 
 def log_sms(borrower_id, event_utc_ts, origination_number, destination_number, text):
     print(f'Logging message to Dynamo: borrower_id {borrower_id} event_utc_ts {event_utc_ts}')
-    item = BorrowerMessageModel(borrower_id=borrower_id,
-                                event_utc_ts=event_utc_ts,
-                                origination_number=origination_number,
-                                destination_number=destination_number,
-                                text=text)
-    item.save()
+    try:
+        item = BorrowerMessageModel(borrower_id=int(borrower_id),
+                                    event_utc_ts=event_utc_ts,
+                                    origination_number=origination_number,
+                                    destination_number=destination_number,
+                                    text=text)
+        item.save()
+    except Exception as e:
+        print(f"Failed to save message due to :{str(e)}")
