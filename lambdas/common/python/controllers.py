@@ -27,7 +27,7 @@ class APIController(object):
                 self._client_id = int(rows[0][0])
                 print(f'Found ClientId {self._client_id}')
 
-    def _build_filter_string(self):
+    def _build_filter_string(self, limit_offset=True):
         offset = self.params.get('offset', 0)
         limit = self.params.get('limit', 50)
         params = [p for p in self.params if p not in ['limit', 'offset']]
@@ -44,7 +44,8 @@ class APIController(object):
         result = ''
         if param_strings:
             result = result + 'WHERE ' + ' AND '.join(param_strings)
-        result = result + f' LIMIT {limit} OFFSET {offset}'
+        if limit_offset:
+            result = result + f' LIMIT {limit} OFFSET {offset}'
 
         return result
 
@@ -128,7 +129,18 @@ class DebtAPIController(APIController):
                 groupped_debts[debt_id]['borrowers'] = []
             groupped_debts[debt_id]['borrowers'].append(borrower.copy())
 
-        return [groupped_debts[debt_id] for debt_id in groupped_debts]
+        # select count
+        query = f"""
+            SELECT COUNT(*) FROM Debt d join Borrower b on d.id = b.debtId 
+            {self._build_filter_string(limit_offset=False)};
+        """
+        columns, rows = self._execute_select(query)
+        total_count = int(rows[0][0])
+
+        return {
+            'data': [groupped_debts[debt_id] for debt_id in groupped_debts],
+            'pagination': {'totalCount': total_count}
+        }
 
     def upload(self):
         return {}
@@ -250,7 +262,8 @@ class ClientAPIController(APIController):
         link_exp_minutes = self.body.get('linkExpMinutes')
         gap_btw_journeys_days = self.body.get('gapBetweenJourneysDays')
         if not client_portfolio_id or not link_exp_minutes or not gap_btw_journeys_days:
-            return HTTPCodes.ERROR.value, {'message': 'Missing clientPortfolioId, linkExpMinutes, or gapBetweenJourneysDays'}
+            return HTTPCodes.ERROR.value, {
+                'message': 'Missing clientPortfolioId, linkExpMinutes, or gapBetweenJourneysDays'}
 
         # check
         query = f"""
@@ -259,7 +272,8 @@ class ClientAPIController(APIController):
         """
         cols, rows = self._execute_select(query)
         if not rows:
-            return HTTPCodes.ERROR.value, {'message': f'ClientPortfolio {client_portfolio_id} doesnt belong to the Client {self._client_id}'}
+            return HTTPCodes.ERROR.value, {
+                'message': f'ClientPortfolio {client_portfolio_id} doesnt belong to the Client {self._client_id}'}
 
         query = f"""
             INSERT INTO ClientConfiguration 
