@@ -125,7 +125,7 @@ def lambda_handler(event, context):
         if http_method == 'GET':
             response = controller.get_account()
         if http_method == 'PATCH':
-            response = controller.patch_account()
+            code, response = controller.patch_account()
     elif path == '/api/account/refresh-api-token':
         controller = ClientAPIController(**c_params)
         if http_method == 'POST':

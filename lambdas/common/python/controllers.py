@@ -174,10 +174,37 @@ class DebtAPIController(APIController):
 
 class ClientAPIController(APIController):
     def get_account(self):
-        return {}
+        client_id = self._client_id or -1
+        query = f"SELECT * FROM Client WHERE id = {client_id}"
+        columns, rows = self._execute_select(query)
+        mapped_items = self._map_cols_rows(columns, rows)
+        return {} if not mapped_items else mapped_items[0]
 
     def patch_account(self):
-        return {}
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
+
+        client_fields = ['firstName', 'lastName', 'phoneNum', 'email', 'organization']
+        set_strings = []
+        for f in client_fields:
+            new_value = self.body.get(f)
+            if new_value:
+                if type(new_value) == str:
+                    set_strings.append(f" {f} = '{new_value}'")
+                else:
+                    set_strings.append(f" {f} = {new_value}")
+        if not set_strings:
+            return HTTPCodes.ERROR.value, {'message': f'No new values provided for {client_fields}'}
+
+        query = f"""
+            UPDATE Client SET
+            {','.join(set_strings)},
+            lastUpdateDate = CURRENT_TIMESTAMP
+            WHERE id = {self._client_id}
+        """
+        self._execute_insert(query)
+
+        return HTTPCodes.OK.value, {}
 
     def post_api_token(self):
         return {}
@@ -248,4 +275,5 @@ class ClientAPIController(APIController):
 class OtherAPIController(APIController):
     def get_report(self):
         return {}
+
 
