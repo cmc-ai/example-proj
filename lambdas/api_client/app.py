@@ -32,6 +32,7 @@ def lambda_handler(event, context):
     path = event.get('path').rstrip('/')
     http_method = event.get('httpMethod')
     headers = event.get('headers')
+    body = json.loads(event.get('body')) if type(event.get('body')) == str else event.get('body')
 
     token = headers.get('Authorization')
     if not token:
@@ -42,7 +43,7 @@ def lambda_handler(event, context):
         'path': path,
         'headers': headers,
         'params': event.get('queryStringParameters'),
-        'body': event.get('body')
+        'body': body
     }
     c_params = {
         'db_conn': db_conn,
