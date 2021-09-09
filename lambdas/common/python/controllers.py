@@ -1,3 +1,5 @@
+import boto3
+
 from datetime import datetime
 from decimal import Decimal
 
@@ -219,7 +221,25 @@ class ClientAPIController(APIController):
         return HTTPCodes.OK.value, {}
 
     def post_api_token(self):
-        return {}
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
+
+        cognito_client = boto3.client('cognito-idp')
+        cognito_response = cognito_client.initiate_auth(
+            AuthFlow='REFRESH_TOKEN_AUTH',
+            AuthParameters=self.body.get('AuthParameters', {}),
+            ClientMetadata=self.body.get('ClientMetadata', {}),
+            ClientId=self.body.get('ClientId'),
+            AnalyticsMetadata=self.body.get('AnalyticsMetadata', {}),
+            UserContextData=self.body.get('UserContextData', {})
+        )
+
+        if cognito_response and cognito_response.get('AuthenticationResult', {}).get('AccessToken'):
+            new_token = cognito_response.get('AuthenticationResult', {}).get('AccessToken')
+            query = f"UPDATE Client SET token = '{new_token}' WHERE id = {self._client_id}"
+            self._execute_insert(query)
+
+        return cognito_response
 
     def get_portfolio(self):
         client_id = self._client_id or -1
