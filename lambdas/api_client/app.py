@@ -1,8 +1,9 @@
-import json
-
 import boto3
+import json
+from jose import jwt
 
 from controllers import DebtAPIController, ClientAPIController, OtherAPIController
+from constants import HTTPCodes
 from helper_functions import get_or_create_pg_connection
 
 DEFAULT_RESPONSE = {"message": "Path is not recognized"}
@@ -31,7 +32,7 @@ def lambda_handler(event, context):
     {'resource': '/api/debts', 
     'path': '/api/debts', 
     'httpMethod': 'GET', 
-    'headers': None, 
+    'headers': {'authorization': 'eyJraWQiOiJUZGJOUVwvKzlyTG5pb1NPU2U2VGVQeEMzUzUyWGFJcmJaUTQ1dXN4R2RSOD0iLCJhbGciOiJSUzI1NiJ9.eyJjdXN0b206b3JnYW5pemF0aW9uIjoiUHJvdmVjdHVzIiwic3ViIjoiMDMxMGE0NDItMmExNy00OTFjLWI4OTgtYTZiOWVhODIzMTA1IiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJjdXN0b206ZnVuZGluZ19hY2NvdW50IjoiOTA5MDkwOTAgOTA5MCA5MDkwIiwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmNhLWNlbnRyYWwtMS5hbWF6b25hd3MuY29tXC9jYS1jZW50cmFsLTFfbU91enpoemNTIiwicGhvbmVfbnVtYmVyX3ZlcmlmaWVkIjpmYWxzZSwiY3VzdG9tOmN2YyI6IjA5OCIsImNvZ25pdG86dXNlcm5hbWUiOiJtdGVyZXNoaW4iLCJjdXN0b206cGF5bWVudCI6InN3ZXJlcGF5Iiwib3JpZ2luX2p0aSI6ImM4YjViNzFhLTgwMTktNDA5ZS05MDI2LWEwNzJmZjk4Y2JhNyIsImF1ZCI6IjY3dW5sYmtkMDEwa3JncnZ1ZmJ1OTYxdXNzIiwiZXZlbnRfaWQiOiI0YjY2NGRlZS1kZjBkLTQwYWUtOTMzNC02MWU2NTFiOTRkMDkiLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTYzMTA5MzE3MSwibmFtZSI6Ik1heGltIiwiY3VzdG9tOmV4cCI6IjEwXC8yOCIsInBob25lX251bWJlciI6Iis3OTE3OTM5NDI0MiIsImV4cCI6MTYzMTA5Njc3MSwiaWF0IjoxNjMxMDkzMTcxLCJqdGkiOiI5ZTRiZWFkYi1hYzljLTQ2YTMtYjgwYi0wNzliOGU2ODZmZjQiLCJlbWFpbCI6InRlcmVzaGluOTNAZ21haWwuY29tIn0.oeOTOtvf1Z7fwHucIc3fq7nSz538GtkP4E0dFWysrXvelL5Z1wTIdZnPS9CrN130LHV6nlPQ5yQ0gcWoWryUMir_QuB8jDeLnrMtxuz3bYeJt5fB-Gh1U0HIBKCC_v_2bd9w9bxnBAjnmZwf4G9pE2MnUKMHnTb2Dz7iT2OXLdybJH3KqE5dv2nFBk2RQTFhcBOJQON0Ks8AAVLiJBxhgMkFh1QF1kQXRHspl00xBUYTaXc01Ypoi9f5c89TOon9IPBx3DbogZcK3jCUqckXjJw2pcoIcbz_kT0s_XEcrsyRwhLBIC5T3wzqyUWlmgGKvMuPtWexuKXmCfK4O1zZbg'}, 
     'multiValueHeaders': None, 
     'queryStringParameters': {'firstName': 'Stan'}, 
     'multiValueQueryStringParameters': {'firstName': ['Stan']}, 
@@ -74,60 +75,69 @@ def lambda_handler(event, context):
 
     path = event.get('path')
     http_method = event.get('httpMethod')
+    headers = event.get('headers')
+
+    token = headers.get('Authorization')
+    if not token:
+        return build_response({'message': 'No auth header found'}, HTTPCodes.UNAUTHORIZED.value)
+
+    client_username = jwt.get_unverified_claims(token).get('cognito:username')
     request_params = {
         'path': path,
-        'headers': event.get('headers'),
+        'headers': headers,
         'params': event.get('queryStringParameters'),
         'body': event.get('body')
     }
-    params = {
-        'db_conn': db_conn
+    c_params = {
+        'db_conn': db_conn,
+        'client_username': client_username
     }
-    params.update(request_params)
+    c_params.update(request_params)
 
     response = DEFAULT_RESPONSE
+    code = HTTPCodes.OK.value
 
     # Debts
     if path == '/api/debts':
-        controller = DebtAPIController(**params)
+        controller = DebtAPIController(**c_params)
         if http_method == 'GET':
             response = controller.get_debt()
     elif path == '/api/debts/upload':
-        controller = DebtAPIController(**params)
+        controller = DebtAPIController(**c_params)
         if http_method == 'GET':
             response = controller.upload()
     elif path == '/api/debts/download':
-        controller = DebtAPIController(**params)
+        controller = DebtAPIController(**c_params)
         if http_method == 'GET':
             response = controller.download()
     elif path.startswith('/api/chat-history/'):
-        controller = DebtAPIController(**params)
+        controller = DebtAPIController(**c_params)
         if http_method == 'GET':
             response = controller.get_chat_history()
     elif path.startswith('/api/payment-history/'):
-        controller = DebtAPIController(**params)
+        controller = DebtAPIController(**c_params)
         if http_method == 'GET':
             response = controller.get_payment_history()
 
     # Clients
     elif path == '/api/account':
-        controller = ClientAPIController(**params)
+        controller = ClientAPIController(**c_params)
         if http_method == 'GET':
             response = controller.get_account()
         if http_method == 'PATCH':
             response = controller.patch_account()
     elif path == '/api/account/refresh-api-token':
-        controller = ClientAPIController(**params)
+        controller = ClientAPIController(**c_params)
         if http_method == 'POST':
             response = controller.post_api_token()
     elif path.startswith('/api/portfolio/'):
-        controller = ClientAPIController(**params)
+        controller = ClientAPIController(**c_params)
         if http_method == 'GET':
             response = controller.get_portfolio()
         if http_method == 'POST':
-            response = controller.post_portfolio()
+            code, response = controller.post_portfolio()
     elif path.startswith('/api/collection/'):
-        controller = ClientAPIController(**params)
+        controller = ClientAPIController(**c_params)
         if http_method == 'GET':
             response = controller.get_collection()
         if http_method == 'POST':
@@ -135,8 +145,8 @@ def lambda_handler(event, context):
 
     # Other
     elif path == '/api/report':
-        controller = OtherAPIController(**params)
+        controller = OtherAPIController(**c_params)
         if http_method == 'GET':
             response = controller.get_report()
 
-    return build_response(response)
+    return build_response(response, code)

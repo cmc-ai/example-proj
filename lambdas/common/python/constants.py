@@ -38,3 +38,10 @@ class ChatbotContext(Enum):
     InitialNegativeIntent_fulfilled = 'InitialNegativeIntent_fulfilled'
     InitialpositiveIntent_fulfilled = 'InitialpositiveIntent_fulfilled'
     DiscountIntent_fulfilled = 'DiscountIntent_fulfilled'
+
+
+class HTTPCodes(Enum):
+    OK = 200
+    CREATED = 201
+    ERROR = 400
+    UNAUTHORIZED = 401

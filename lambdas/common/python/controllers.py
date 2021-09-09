@@ -2,18 +2,30 @@ from datetime import datetime
 from decimal import Decimal
 
 from dynamo_models import BorrowerMessageModel
+from constants import HTTPCodes
 from helper_functions import ts_to_utc_dt
 
 LAST_INDEX = -1
 
 
 class APIController(object):
-    def __init__(self, path, headers, params, body, db_conn):
+    def __init__(self, path, headers, params, body, db_conn, client_username=None):
         self.path = path
         self.headers = headers or {}
         self.params = params or {}
         self.body = body or {}
         self.db_conn = db_conn
+        self._client_id = None
+
+        # Client API section
+        if client_username:
+            query = f"SELECT id FROM Client WHERE username = '{client_username}'"
+            cols, rows = self._execute_select(query)
+            if not rows:
+                print(f'ClientId is not found for client_username {client_username}')
+            else:
+                self._client_id = int(rows[0][0])
+                print(f'Found ClientId {self._client_id}')
 
     def _build_filter_string(self):
         offset = self.params.get('offset', 0)
@@ -22,18 +34,25 @@ class APIController(object):
 
         param_strings = []
         for param in params:
-            if type(param) == str:
-                param_string = f" {param} = '{self.params.get(param)}' "
+            val = self.params.get(param)
+            if type(val) == str:
+                param_string = f"{param} = '{val}'"
             else:
-                param_string = f" {param} = {self.params.get(param)} "
+                param_string = f"{param} = {val}"
             param_strings.append(param_string)
 
         result = ''
         if param_strings:
-            result = result + ' WHERE ' + ' AND '.join(param_strings)
+            result = result + 'WHERE ' + ' AND '.join(param_strings)
         result = result + f' LIMIT {limit} OFFSET {offset}'
 
         return result
+
+    def _execute_insert(self, query):
+        print(f'Executing {query}')
+        self.db_conn.run(query)
+        self.db_conn.commit()
+        return
 
     def _execute_select(self, query):
         print(f'Executing {query}')
@@ -65,40 +84,42 @@ class APIController(object):
 class DebtAPIController(APIController):
 
     def get_debt(self):
+        if self._client_id:
+            self.params['clientId'] = self._client_id
         query = f"""
-        SELECT 
-        d.id as d_id, 
-        d.clientid as d_clientId,
-        d.clientportfolioid as d_clientPortfolioId, 
-        d.originalbalance as d_originalBalance, 
-        d.outstandingbalance as d_outstandingBalance, 
-        d.totalpayment as d_totalPayment, 
-        d.discount as d_discount, 
-        d.description as d_description, 
-        d.discountexpirationdatetimeutc as d_discountExpirationDateTimeUTC,
-        d.createdate as d_createDate, 
-        d.lastupdatedate as d_lastUpdateDate, 
-        b.id as b_id,
-        b.debtId as b_debtId,
-        b.firstName as b_firstName,
-        b.lastName as b_lastName,
-        b.isPrimary as b_isPrimary,
-        b.channelType as b_channelType,
-        b.phoneNum as b_phoneNum,
-        b.email as b_email,
-        b.timezone as b_timezone,
-        b.country as b_country,
-        b.createDate as b_createDate,
-        b.lastUpdateDate as b_lastUpdateDate
-        FROM Debt d join Borrower b on d.id = b.debtId
-        {self._build_filter_string()} ;
+            SELECT 
+            d.id as d_id, 
+            d.clientid as d_clientId,
+            d.clientportfolioid as d_clientPortfolioId, 
+            d.originalbalance as d_originalBalance, 
+            d.outstandingbalance as d_outstandingBalance, 
+            d.totalpayment as d_totalPayment, 
+            d.discount as d_discount, 
+            d.description as d_description, 
+            d.discountexpirationdatetimeutc as d_discountExpirationDateTimeUTC,
+            d.createdate as d_createDate, 
+            d.lastupdatedate as d_lastUpdateDate, 
+            b.id as b_id,
+            b.debtId as b_debtId,
+            b.firstName as b_firstName,
+            b.lastName as b_lastName,
+            b.isPrimary as b_isPrimary,
+            b.channelType as b_channelType,
+            b.phoneNum as b_phoneNum,
+            b.email as b_email,
+            b.timezone as b_timezone,
+            b.country as b_country,
+            b.createDate as b_createDate,
+            b.lastUpdateDate as b_lastUpdateDate
+            FROM Debt d join Borrower b on d.id = b.debtId
+            {self._build_filter_string()} ;
         """
         columns, rows = self._execute_select(query)
         mapped_items = self._map_cols_rows(columns, rows)
 
         groupped_debts = {}
         for item in mapped_items:
-            debt = {field[2:]: item[field] for field in item if field.startswith('d_')}  # [2:] removes prefix
+            debt = {field[2:]: item[field] for field in item if field.startswith('d_')}  # [2:] removes prefix d_
             debt_id = debt.get('id')
             borrower = {field[2:]: item[field] for field in item if field.startswith('b_')}
 
@@ -118,8 +139,11 @@ class DebtAPIController(APIController):
     def get_chat_history(self):
         debt_id = int(self.path.rstrip('/').split('/')[LAST_INDEX])
         query = f"""
-        SELECT id FROM Borrower WHERE debtId = {debt_id}
+            SELECT b.id FROM Borrower b JOIN Debt d on b.debtId = d.id
+            WHERE b.debtId = {debt_id} 
         """
+        if self._client_id:
+            query += f" AND d.clientId = {self._client_id}"
         columns, rows = self._execute_select(query)
         if not rows:
             print(f'borrower_id is not found for debt_id {debt_id}')
@@ -138,10 +162,10 @@ class DebtAPIController(APIController):
     def get_payment_history(self):
         debt_id = int(self.path.rstrip('/').split('/')[LAST_INDEX])
         query = f"""
-        SELECT * 
-        FROM DebtPayment
-        WHERE debtId = {debt_id}
+            SELECT * FROM DebtPayment WHERE debtId = {debt_id}
         """
+        if self._client_id:
+            query += f" AND EXISTS (SELECT * FROM Debt where id = {debt_id} and clientId = {self._client_id})"
         columns, rows = self._execute_select(query)
         mapped_items = self._map_cols_rows(columns, rows)
 
@@ -159,18 +183,69 @@ class ClientAPIController(APIController):
         return {}
 
     def get_portfolio(self):
-        return {}
+        client_id = self._client_id or -1
+        query = f"SELECT * FROM ClientPortfolio WHERE clientId = {client_id}"
+        columns, rows = self._execute_select(query)
+        mapped_items = self._map_cols_rows(columns, rows)
+        return mapped_items
 
     def post_portfolio(self):
-        return {}
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
+
+        portfolio_name = self.body.get('portfolioName')
+        if not portfolio_name:
+            return HTTPCodes.ERROR.value, {'message': 'Missing portfolioName'}
+
+        query = f"""
+            INSERT INTO ClientPortfolio (clientId, portfolioName, createDate, lastUpdateDate )
+            VALUES ({self._client_id}, '{portfolio_name}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        """
+        self._execute_insert(query)
+
+        return HTTPCodes.CREATED.value, {}
 
     def get_collection(self):
-        return {}
+        client_id = self._client_id or -1
+        query = f"""
+            SELECT cc.* FROM ClientConfiguration cc JOIN ClientPortfolio cp ON cc.clientPortfolioId = cp.id
+            WHERE cp.clientId = {client_id}
+        """
+        columns, rows = self._execute_select(query)
+        mapped_items = self._map_cols_rows(columns, rows)
+        return mapped_items
 
     def post_collection(self):
-        return {}
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'No ClientId provided'}
+
+        client_portfolio_id = self.body.get('clientPortfolioId')
+        link_exp_minutes = self.body.get('linkExpMinutes')
+        gap_btw_journeys_days = self.body.get('gapBetweenJourneysDays')
+        if not client_portfolio_id or not link_exp_minutes or not gap_btw_journeys_days:
+            return HTTPCodes.ERROR.value, {'message': 'Missing clientPortfolioId, linkExpMinutes, or gapBetweenJourneysDays'}
+
+        # check
+        query = f"""
+            SELECT cp.id from ClientPortfolio cp JOIN Client c on cp.clientId = c.id
+            WHERE cp.id = {client_portfolio_id} AND c.id = {self._client_id}
+        """
+        cols, rows = self._execute_select(query)
+        if not rows:
+            return HTTPCodes.ERROR.value, {'message': f'ClientPortfolio {client_portfolio_id} doesnt belong to the Client {self._client_id}'}
+
+        query = f"""
+            INSERT INTO ClientConfiguration 
+            (clientPortfolioId, linkExpMinutes, gapBetweenJourneysDays, createDate, lastUpdateDate )
+            VALUES 
+            ({client_portfolio_id}, {link_exp_minutes}, {gap_btw_journeys_days}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+            """
+        self._execute_insert(query)
+
+        return HTTPCodes.CREATED.value, {}
 
 
 class OtherAPIController(APIController):
     def get_report(self):
         return {}
+

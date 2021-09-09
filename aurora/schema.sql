@@ -16,7 +16,6 @@ DROP TABLE IF EXISTS JourneyDebtStatus CASCADE;
 DROP TABLE IF EXISTS JourneyExeActivity CASCADE;
 
 --- Clients
-
 CREATE TABLE IF NOT EXISTS Client (
     id          SERIAL,
     username    char(50) NOT NULL,
