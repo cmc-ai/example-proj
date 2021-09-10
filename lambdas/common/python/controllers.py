@@ -159,6 +159,7 @@ class DebtAPIController(APIController):
             Params={'Bucket': s3_bucket, 'Key': upload_file_key},
             ExpiresIn=S3_PRESIGNED_URL_EXPIRATION_SEC
         )
+        print(f'Presigned URL {S3_PRESIGNED_URL_EXPIRATION_SEC} sec {url}')
         return url
 
     def download(self):
@@ -173,6 +174,7 @@ class DebtAPIController(APIController):
             Params={'Bucket': s3_bucket, 'Key': example_file_key},
             ExpiresIn=S3_PRESIGNED_URL_EXPIRATION_SEC
         )
+        print(f'Presigned URL {S3_PRESIGNED_URL_EXPIRATION_SEC} sec {url}')
         return url
 
     def get_chat_history(self):

@@ -34,9 +34,9 @@ def lambda_handler(event, context):
     headers = event.get('headers')
     body = json.loads(event.get('body')) if type(event.get('body')) == str else event.get('body')
 
-    token = headers.get('Authorization')
-    if not token:
+    if not headers or not headers.get('Authorization'):
         return build_response({'message': 'No auth header found'}, HTTPCodes.UNAUTHORIZED.value)
+    token = headers.get('Authorization')
 
     client_username = jwt.get_unverified_claims(token).get('cognito:username')
     request_params = {
