@@ -1,3 +1,5 @@
+import os
+
 import boto3
 
 from datetime import datetime
@@ -8,6 +10,7 @@ from constants import HTTPCodes
 from helper_functions import ts_to_utc_dt
 
 LAST_INDEX = -1
+S3_PRESIGNED_URL_EXPIRATION_SEC = 3600
 
 
 class APIController(object):
@@ -145,10 +148,32 @@ class DebtAPIController(APIController):
         }
 
     def upload(self):
-        return {}
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
+
+        s3_bucket = os.getenv('CLIENTS_S3_BUCKET_NAME')
+        upload_file_key = f"{self._client_id}/debts/{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}.json"
+
+        url = boto3.client('s3').generate_presigned_url(
+            ClientMethod='put_object',
+            Params={'Bucket': s3_bucket, 'Key': upload_file_key},
+            ExpiresIn=S3_PRESIGNED_URL_EXPIRATION_SEC
+        )
+        return url
 
     def download(self):
-        return {}
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
+
+        s3_bucket = os.getenv('CLIENTS_S3_BUCKET_NAME')
+        example_file_key = 'debts-upload-example.json'
+
+        url = boto3.client('s3').generate_presigned_url(
+            ClientMethod='get_object',
+            Params={'Bucket': s3_bucket, 'Key': example_file_key},
+            ExpiresIn=S3_PRESIGNED_URL_EXPIRATION_SEC
+        )
+        return url
 
     def get_chat_history(self):
         debt_id = int(self.path.rstrip('/').split('/')[LAST_INDEX])
