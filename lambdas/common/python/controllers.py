@@ -364,23 +364,23 @@ class PaymentAPIController(APIController):
         query = f"SELECT id, clientId FROM Debt WHERE id = {debt_id}"
         debt_id, client_id = self._execute_select(query)[LAST_INDEX]
 
-        # sp_key_prefix = os.getenv('SWERVE_PAY_KEY_PREFIX')
-        # acc_sid_key = f'{sp_key_prefix}/{client_id}/account_sid'
-        # username_key = f'{sp_key_prefix}/{client_id}/username'
-        # apikey_key = f'{sp_key_prefix}/{client_id}/apikey'
-        # ssm_client = boto3.client('ssm')
-        # acc_sid = ssm_client.get_parameter(Name=acc_sid_key, WithDecryption=False)['Parameter']['Value']
-        # username = ssm_client.get_parameter(Name=username_key, WithDecryption=False)['Parameter']['Value']
-        # apikey = ssm_client.get_parameter(Name=apikey_key, WithDecryption=True)['Parameter']['Value']
-        #
+        sp_key_prefix = os.getenv('SWERVE_PAY_KEY_PREFIX')
+        acc_sid_key = f'{sp_key_prefix}/{client_id}/account_sid'
+        username_key = f'{sp_key_prefix}/{client_id}/username'
+        apikey_key = f'{sp_key_prefix}/{client_id}/apikey'
+        ssm_client = boto3.client('ssm')
+        acc_sid = ssm_client.get_parameter(Name=acc_sid_key, WithDecryption=False)['Parameter']['Value']
+        username = ssm_client.get_parameter(Name=username_key, WithDecryption=False)['Parameter']['Value']
+        apikey = ssm_client.get_parameter(Name=apikey_key, WithDecryption=True)['Parameter']['Value']
+
         # self._sp_proc = SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
 
     def get_payment(self):
         hash = self.params.get('hash')
         crc = self.params.get('crc')
         ssm_payment_link_encryption_key = os.getenv('SSM_PAYMENT_LINK_ENCRYPTION_KEY')
-        encryption_key = boto3.client('ssm') \
-            .get_parameter(Name=ssm_payment_link_encryption_key, WithDecryption=True)['Parameter']['Value']
+        encryption_key = boto3.client('ssm').get_parameter(Name=ssm_payment_link_encryption_key,
+                                                           WithDecryption=True)['Parameter']['Value']
 
         decrypted_link, verified = decrypt_payment_link(hash, encryption_key, crc)
         if not verified:
@@ -392,15 +392,20 @@ class PaymentAPIController(APIController):
         if int(expiration_utc_ts) < datetime.utcnow().timestamp():
             return HTTPCodes.OK.value, {'message': 'Link Expired'}
 
-        # get borrower's data
+        # get borrower's funding accounts
         query = f"""
-            SELECT id, firstName, lastName 
-            FROM Borrower WHERE debtId = {debt_id}
+            SELECT bfa* 
+            FROM Borrower b JOIN BorrowerFundingAccount bfa ON b.id = bfa.borrowerId
+            WHERE b.debtId = {debt_id}
         """
-        b_id, b_first_name, b_last_name = self._execute_select(query)[LAST_INDEX]
-
 
         return {}
 
     def post_payment(self):
         return {}
+
+## ----
+# from helper_functions import get_or_create_pg_connection
+# db_conn = get_or_create_pg_connection(None, boto3.client('rds'))
+# c = DebtAPIController('/api/debt',{},{},{},db_conn,'test_ilnur')
+# print(c.get_debt())

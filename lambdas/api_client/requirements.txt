@@ -1,4 +1,4 @@
 pg8000
 pynamodb
 python-jose[cryptography]
-# pycrypto
+pycrypto

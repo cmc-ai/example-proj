@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS BorrowerFundingAccount (
     borrowerId      int NOT NULL,
     accountType char(20) NOT NULL,
     summary     char(50) NOT NULL,
-    clietnIdExternal char(50),
+    clientIdExternal char(50),
     paymentProcessor char(200),
     token       char(200),
     createDate  timestamp,
