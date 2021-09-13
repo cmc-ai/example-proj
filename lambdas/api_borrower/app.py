@@ -2,7 +2,7 @@ import boto3
 import json
 
 from constants import HTTPCodes
-from controllers import DebtAPIController, ClientAPIController, OtherAPIController
+from controllers import PaymentAPIController
 from helper_functions import get_or_create_pg_connection
 
 DEFAULT_RESPONSE = {"message": "Path is not recognized"}
@@ -47,12 +47,14 @@ def lambda_handler(event, context):
     response = DEFAULT_RESPONSE
     code = HTTPCodes.OK.value
 
-    # Debts
+    # Payment
+    # TODO add 'SSM_PAYMENT_LINK_ENCRYPTION_KEY', Permissions ssm:read_param, Layers with payment_processor
+    # TODO SWERVE_PAY_KEY_PREFIX, tf this params
     if path == '/api/payment':
-        controller = (**c_params)
+        controller = PaymentAPIController(**c_params)
         if http_method == 'GET':
-            response = controller.get_debt()
+            code, response = controller.get_payment()
         if http_method == 'POST':
-            code, response = controller.post_portfolio()
+            code, response = controller.post_payment()
 
     return build_response(response, code)

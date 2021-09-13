@@ -8,12 +8,16 @@ from decimal import Decimal
 from dynamo_models import BorrowerMessageModel
 from constants import HTTPCodes
 from helper_functions import ts_to_utc_dt
+from payment_controller import decrypt_payment_link
+# from payment_processor import SwervePay
 
-LAST_INDEX = -1
+LAST_INDEX = -1  # use these indexes to avoid magic numbers in code
+THE_ONLY_INDEX = 0
 S3_PRESIGNED_URL_EXPIRATION_SEC = 3600
 
 
 class APIController(object):
+
     def __init__(self, path, headers, params, body, db_conn, client_username=None):
         self.path = path
         self.headers = headers or {}
@@ -29,19 +33,19 @@ class APIController(object):
             if not rows:
                 print(f'ClientId is not found for client_username {client_username}')
             else:
-                self._client_id = int(rows[0][0])
+                self._client_id = int(rows[THE_ONLY_INDEX][THE_ONLY_INDEX])
                 print(f'Found ClientId {self._client_id}')
 
     def _build_filter_string(self, limit_offset=True):
         offset = self.params.get('offset', 0)
-        limit = self.params.get('limit', 50)
+        limit = self.params.get('limit', 10)
         params = [p for p in self.params if p not in ['limit', 'offset']]
 
         param_strings = []
         for param in params:
             val = self.params.get(param)
             if type(val) == str:
-                param_string = f"{param} = '{val}'"
+                param_string = f"LOWER({param}) = '{val.lower()}'"
             else:
                 param_string = f"{param} = {val}"
             param_strings.append(param_string)
@@ -60,7 +64,7 @@ class APIController(object):
         self.db_conn.commit()
         return
 
-    def _execute_select(self, query):
+    def _execute_select(self, query) -> (list, list):
         print(f'Executing {query}')
         cursor = self.db_conn.cursor()
         rows = cursor.execute(query).fetchall()
@@ -91,12 +95,13 @@ class DebtAPIController(APIController):
 
     def get_debt(self):
         if self._client_id:
-            self.params['clientId'] = self._client_id
+            self.params['d.clientId'] = self._client_id
         query = f"""
             SELECT 
             d.id as d_id, 
             d.clientid as d_clientId,
             d.clientportfolioid as d_clientPortfolioId, 
+            cp.portfolioName as d_clientPortfolioName,
             d.originalbalance as d_originalBalance, 
             d.outstandingbalance as d_outstandingBalance, 
             d.totalpayment as d_totalPayment, 
@@ -104,7 +109,9 @@ class DebtAPIController(APIController):
             d.description as d_description, 
             d.discountexpirationdatetimeutc as d_discountExpirationDateTimeUTC,
             d.createdate as d_createDate, 
-            d.lastupdatedate as d_lastUpdateDate, 
+            d.lastupdatedate as d_lastUpdateDate,
+            jdsd.statusName as s_statusName,
+            jds.statusValue as s_statusValue,
             b.id as b_id,
             b.debtId as b_debtId,
             b.firstName as b_firstName,
@@ -117,22 +124,30 @@ class DebtAPIController(APIController):
             b.country as b_country,
             b.createDate as b_createDate,
             b.lastUpdateDate as b_lastUpdateDate
-            FROM Debt d join Borrower b on d.id = b.debtId
+            FROM Debt d JOIN Borrower b ON d.id = b.debtId
+            JOIN ClientPortfolio cp ON cp.id = d.clientPortfolioId
+            JOIN JourneyEntryActivity jea ON jea.debtId = d.id
+            JOIN JourneyDebtStatus jds ON jds.journeyEntryActivityId = jea.id
+            JOIN JourneyDebtStatusDefinition jdsd ON jdsd.id = jds.journeyDebtStatusDefinitionId
             {self._build_filter_string()} ;
         """
-        columns, rows = self._execute_select(query)
-        mapped_items = self._map_cols_rows(columns, rows)
+        mapped_items = self._map_cols_rows(*self._execute_select(query))
 
         groupped_debts = {}
         for item in mapped_items:
             debt = {field[2:]: item[field] for field in item if field.startswith('d_')}  # [2:] removes prefix d_
             debt_id = debt.get('id')
             borrower = {field[2:]: item[field] for field in item if field.startswith('b_')}
+            status = {field[2:]: item[field] for field in item if field.startswith('s_')}
 
             if not groupped_debts.get(debt_id):  # check if debt already exists
                 groupped_debts[debt_id] = debt.copy()
                 groupped_debts[debt_id]['borrowers'] = []
-            groupped_debts[debt_id]['borrowers'].append(borrower.copy())
+                groupped_debts[debt_id]['statuses'] = []
+            if borrower not in groupped_debts[debt_id]['borrowers']:
+                groupped_debts[debt_id]['borrowers'].append(borrower.copy())
+            if status not in groupped_debts[debt_id]['statuses']:
+                groupped_debts[debt_id]['statuses'].append(status.copy())
 
         # select count
         query = f"""
@@ -214,6 +229,7 @@ class DebtAPIController(APIController):
 
 
 class ClientAPIController(APIController):
+
     def get_account(self):
         client_id = self._client_id or -1
         query = f"SELECT * FROM Client WHERE id = {client_id}"
@@ -335,4 +351,56 @@ class ClientAPIController(APIController):
 
 class OtherAPIController(APIController):
     def get_report(self):
+        return {}
+
+
+class PaymentAPIController(APIController):
+
+    def __init__(self, **kwargs):
+        super(PaymentAPIController, self).__init__(**kwargs)
+        self._sp_proc = None
+
+    def _create_sp_proc(self, debt_id):
+        query = f"SELECT id, clientId FROM Debt WHERE id = {debt_id}"
+        debt_id, client_id = self._execute_select(query)[LAST_INDEX]
+
+        # sp_key_prefix = os.getenv('SWERVE_PAY_KEY_PREFIX')
+        # acc_sid_key = f'{sp_key_prefix}/{client_id}/account_sid'
+        # username_key = f'{sp_key_prefix}/{client_id}/username'
+        # apikey_key = f'{sp_key_prefix}/{client_id}/apikey'
+        # ssm_client = boto3.client('ssm')
+        # acc_sid = ssm_client.get_parameter(Name=acc_sid_key, WithDecryption=False)['Parameter']['Value']
+        # username = ssm_client.get_parameter(Name=username_key, WithDecryption=False)['Parameter']['Value']
+        # apikey = ssm_client.get_parameter(Name=apikey_key, WithDecryption=True)['Parameter']['Value']
+        #
+        # self._sp_proc = SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
+
+    def get_payment(self):
+        hash = self.params.get('hash')
+        crc = self.params.get('crc')
+        ssm_payment_link_encryption_key = os.getenv('SSM_PAYMENT_LINK_ENCRYPTION_KEY')
+        encryption_key = boto3.client('ssm') \
+            .get_parameter(Name=ssm_payment_link_encryption_key, WithDecryption=True)['Parameter']['Value']
+
+        decrypted_link, verified = decrypt_payment_link(hash, encryption_key, crc)
+        if not verified:
+            return HTTPCodes.ERROR.value, {'message': 'Link Verification Failed'}
+
+        debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
+        print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
+
+        if int(expiration_utc_ts) < datetime.utcnow().timestamp():
+            return HTTPCodes.OK.value, {'message': 'Link Expired'}
+
+        # get borrower's data
+        query = f"""
+            SELECT id, firstName, lastName 
+            FROM Borrower WHERE debtId = {debt_id}
+        """
+        b_id, b_first_name, b_last_name = self._execute_select(query)[LAST_INDEX]
+
+
+        return {}
+
+    def post_payment(self):
         return {}
