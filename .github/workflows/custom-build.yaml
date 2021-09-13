@@ -1,0 +1,52 @@
+# This is a basic workflow to help you get started with Actions
+
+name: BuildBorrowerAPI# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  repository_dispatch:
+    types: [dev_code_deploy]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      #- run: echo ${{secrets.AWS_ACCESS_KEY_ID_TEST}}
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          submodules: true
+      - name: Checkout Dependencies Repo
+        uses: actions/checkout@v2
+        with:
+          repository: cmc-ai/payment-processor
+          ref: main
+          path: payment-processor
+          token: ${{ secrets.IAC_PAT }}
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies with LambCI
+        uses: docker://lambci/lambda:build-python3.8
+        with:
+            entrypoint: pip
+            args: install -r lambdas/api_borrower/requirements.txt --target lambdas/api_borrower/
+
+      - name: Bundle function with dependencies
+        run: |
+            zip -r lambdas/build.zip lambdas/api_borrower/
+
+      - name: Copy function zip file to S3
+        run: |
+            aws s3 cp lambdas/build.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/borrower_api.zip
