@@ -97,39 +97,47 @@ class DebtAPIController(APIController):
         if self._client_id:
             self.params['d.clientId'] = self._client_id
         query = f"""
-            SELECT 
-            d.id as d_id, 
-            d.clientid as d_clientId,
-            d.clientportfolioid as d_clientPortfolioId, 
-            cp.portfolioName as d_clientPortfolioName,
-            d.originalbalance as d_originalBalance, 
-            d.outstandingbalance as d_outstandingBalance, 
-            d.totalpayment as d_totalPayment, 
-            d.discount as d_discount, 
-            d.description as d_description, 
-            d.discountexpirationdatetimeutc as d_discountExpirationDateTimeUTC,
-            d.createdate as d_createDate, 
-            d.lastupdatedate as d_lastUpdateDate,
+            SELECT db.*, 
+            cp.portfolioName as d_clientPortfolioNam,
             jdsd.statusName as s_statusName,
-            jds.statusValue as s_statusValue,
-            b.id as b_id,
-            b.debtId as b_debtId,
-            b.firstName as b_firstName,
-            b.lastName as b_lastName,
-            b.isPrimary as b_isPrimary,
-            b.channelType as b_channelType,
-            b.phoneNum as b_phoneNum,
-            b.email as b_email,
-            b.timezone as b_timezone,
-            b.country as b_country,
-            b.createDate as b_createDate,
-            b.lastUpdateDate as b_lastUpdateDate
-            FROM Debt d JOIN Borrower b ON d.id = b.debtId
-            JOIN ClientPortfolio cp ON cp.id = d.clientPortfolioId
-            JOIN JourneyEntryActivity jea ON jea.debtId = d.id
-            JOIN JourneyDebtStatus jds ON jds.journeyEntryActivityId = jea.id
-            JOIN JourneyDebtStatusDefinition jdsd ON jdsd.id = jds.journeyDebtStatusDefinitionId
-            {self._build_filter_string()} ;
+            jds.statusValue as s_statusValue 
+            FROM
+            (
+                SELECT 
+                d.id as d_id, 
+                d.clientid as d_clientId,
+                d.clientportfolioid as d_clientPortfolioId, 
+                --cp.portfolioName as d_clientPortfolioName,
+                d.originalbalance as d_originalBalance, 
+                d.outstandingbalance as d_outstandingBalance, 
+                d.totalpayment as d_totalPayment, 
+                d.discount as d_discount, 
+                d.description as d_description, 
+                d.discountexpirationdatetimeutc as d_discountExpirationDateTimeUTC,
+                d.createdate as d_createDate, 
+                d.lastupdatedate as d_lastUpdateDate,
+                --jdsd.statusName as s_statusName,
+                --jds.statusValue as s_statusValue,
+                b.id as b_id,
+                b.debtId as b_debtId,
+                b.firstName as b_firstName,
+                b.lastName as b_lastName,
+                b.isPrimary as b_isPrimary,
+                b.channelType as b_channelType,
+                b.phoneNum as b_phoneNum,
+                b.email as b_email,
+                b.timezone as b_timezone,
+                b.country as b_country,
+                b.createDate as b_createDate,
+                b.lastUpdateDate as b_lastUpdateDate
+                FROM Debt d JOIN Borrower b ON d.id = b.debtId
+                {self._build_filter_string()} 
+            ) db
+            LEFT JOIN ClientPortfolio cp ON cp.id = db.d_clientPortfolioId
+            LEFT JOIN JourneyEntryActivity jea ON jea.debtId = db.d_id
+            LEFT JOIN JourneyDebtStatus jds ON jds.journeyEntryActivityId = jea.id
+            LEFT JOIN JourneyDebtStatusDefinition jdsd ON jdsd.id = jds.journeyDebtStatusDefinitionId
+            ;
         """
         mapped_items = self._map_cols_rows(*self._execute_select(query))
 
@@ -138,7 +146,7 @@ class DebtAPIController(APIController):
             debt = {field[2:]: item[field] for field in item if field.startswith('d_')}  # [2:] removes prefix d_
             debt_id = debt.get('id')
             borrower = {field[2:]: item[field] for field in item if field.startswith('b_')}
-            status = {field[2:]: item[field] for field in item if field.startswith('s_')}
+            status = {field[2:]: item[field] for field in item if field.startswith('s_') and item[field]}
 
             if not groupped_debts.get(debt_id):  # check if debt already exists
                 groupped_debts[debt_id] = debt.copy()
@@ -146,12 +154,13 @@ class DebtAPIController(APIController):
                 groupped_debts[debt_id]['statuses'] = []
             if borrower not in groupped_debts[debt_id]['borrowers']:
                 groupped_debts[debt_id]['borrowers'].append(borrower.copy())
-            if status not in groupped_debts[debt_id]['statuses']:
+            if status and status not in groupped_debts[debt_id]['statuses']:
                 groupped_debts[debt_id]['statuses'].append(status.copy())
 
         # select count
         query = f"""
-            SELECT COUNT(*) FROM Debt d join Borrower b on d.id = b.debtId 
+            SELECT COUNT(DISTINCT(d.id)) 
+            FROM Debt d JOIN Borrower b ON d.id = b.debtId
             {self._build_filter_string(limit_offset=False)};
         """
         columns, rows = self._execute_select(query)
@@ -404,7 +413,7 @@ class PaymentAPIController(APIController):
     def post_payment(self):
         return {}
 
-## ----
+# ----
 # from helper_functions import get_or_create_pg_connection
 # db_conn = get_or_create_pg_connection(None, boto3.client('rds'))
 # c = DebtAPIController('/api/debt',{},{},{},db_conn,'test_ilnur')
