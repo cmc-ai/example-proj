@@ -51,3 +51,12 @@ jobs:
       - name: Copy function zip file to S3
         run: |
             aws s3 cp lambdas/borrower_api.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/borrower_api.zip
+            
+      - name: Trigger IAC CI
+        uses: mvasigh/dispatch-action@main
+        with:
+          # You should create a personal access token and store it in your repository
+          token: ${{ secrets.IAC_PAT }}
+          repo: iac
+          owner: cmc-ai
+          event_type: dev_code_deploy
