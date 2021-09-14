@@ -9,7 +9,7 @@ from dynamo_models import BorrowerMessageModel
 from constants import HTTPCodes
 from helper_functions import ts_to_utc_dt
 from payment_controller import decrypt_payment_link
-# from payment_processor import SwervePay
+from payment_processor.swervepay import SwervePay
 
 LAST_INDEX = -1  # use these indexes to avoid magic numbers in code
 THE_ONLY_INDEX = 0
@@ -98,7 +98,7 @@ class DebtAPIController(APIController):
             self.params['d.clientId'] = self._client_id
         query = f"""
             SELECT db.*, 
-            cp.portfolioName as d_clientPortfolioNam,
+            cp.portfolioName as d_clientPortfolioName,
             jdsd.statusName as s_statusName,
             jds.statusValue as s_statusValue 
             FROM
@@ -107,7 +107,6 @@ class DebtAPIController(APIController):
                 d.id as d_id, 
                 d.clientid as d_clientId,
                 d.clientportfolioid as d_clientPortfolioId, 
-                --cp.portfolioName as d_clientPortfolioName,
                 d.originalbalance as d_originalBalance, 
                 d.outstandingbalance as d_outstandingBalance, 
                 d.totalpayment as d_totalPayment, 
@@ -116,8 +115,6 @@ class DebtAPIController(APIController):
                 d.discountexpirationdatetimeutc as d_discountExpirationDateTimeUTC,
                 d.createdate as d_createDate, 
                 d.lastupdatedate as d_lastUpdateDate,
-                --jdsd.statusName as s_statusName,
-                --jds.statusValue as s_statusValue,
                 b.id as b_id,
                 b.debtId as b_debtId,
                 b.firstName as b_firstName,
@@ -382,7 +379,7 @@ class PaymentAPIController(APIController):
         username = ssm_client.get_parameter(Name=username_key, WithDecryption=False)['Parameter']['Value']
         apikey = ssm_client.get_parameter(Name=apikey_key, WithDecryption=True)['Parameter']['Value']
 
-        # self._sp_proc = SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
+        self._sp_proc = SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
 
     def get_payment(self):
         hash = self.params.get('hash')
@@ -403,18 +400,21 @@ class PaymentAPIController(APIController):
 
         # get borrower's funding accounts
         query = f"""
-            SELECT bfa* 
+            SELECT bfa.* 
             FROM Borrower b JOIN BorrowerFundingAccount bfa ON b.id = bfa.borrowerId
             WHERE b.debtId = {debt_id}
         """
+        mapped_items = self._map_cols_rows(*self._execute_select(query))
 
-        return {}
+        return HTTPCodes.OK.value, mapped_items
 
     def post_payment(self):
-        return {}
+        return HTTPCodes.OK.value, {}
 
 # ----
 # from helper_functions import get_or_create_pg_connection
 # db_conn = get_or_create_pg_connection(None, boto3.client('rds'))
-# c = DebtAPIController('/api/debt',{},{},{},db_conn,'test_ilnur')
-# print(c.get_debt())
+# c = PaymentAPIController(path='/api/payment',headers={},
+#                          params={'hash': 'MTo0LjU6MTYzMDUwMjQ0Ng==', 'crc': '0x8af86f69'},
+#                          body={},db_conn=db_conn) # ,client_username='test_ilnur'
+# print(c.get_payment())

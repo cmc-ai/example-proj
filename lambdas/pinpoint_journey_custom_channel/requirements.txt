@@ -1,4 +1,4 @@
-pynamodb
+pynamodb==5.1.0
 # not needed
-# pg8000
-# pycrypto
+# pg8000==1.21.0
+# pycrypto==2.6.1

@@ -48,8 +48,6 @@ def lambda_handler(event, context):
     code = HTTPCodes.OK.value
 
     # Payment
-    # TODO add 'SSM_PAYMENT_LINK_ENCRYPTION_KEY', Permissions ssm:read_param, Layers with payment_processor
-    # TODO SWERVE_PAY_KEY_PREFIX, tf this params
     if path == '/api/payment':
         controller = PaymentAPIController(**c_params)
         if http_method == 'GET':

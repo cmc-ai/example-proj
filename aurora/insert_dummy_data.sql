@@ -78,3 +78,9 @@ VALUES
     (2, 7, 'working', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     (2, 7, 'working', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
+
+INSERT INTO BorrowerFundingAccount
+    (borrowerId, accountType, summary, clientIdExternal, paymentProcessor, token, createDate, lastUpdateDate)
+VALUES
+    (1, 'cc', 'idk some summary', 124132, 'Swerve', 'dasfdasd3fDF', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (1, 'cc', 'another summary', 124132, 'Swerve', 'dasadfdsfdasd3fDF', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
