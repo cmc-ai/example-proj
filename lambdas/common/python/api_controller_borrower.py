@@ -60,6 +60,14 @@ class PaymentAPIController(APIController):
         return HTTPCodes.OK.value, mapped_items
 
     def post_payment(self):
+        # {'id': 1, 'borrowerid': 1, 'accounttype': 'cc', 'summary': 'idk some summary', 'paymentprocessor': 'Swerve',
+        # 'token': 'dasfdasd3fDF', 'clientidexternal': '124132'}
+
+        account_type = self.body.get('accountType', '')
+        summary = self.body.get('summary', '')
+        token = self.body.get('token', '')
+
+
         return HTTPCodes.OK.value, {}
 
 # ----
