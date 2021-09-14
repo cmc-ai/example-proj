@@ -117,7 +117,7 @@ class DebtPaymentController:
 
         return payment_link, exp_minutes
 
-    def _create_payment_link(self, ssm_client, amount: float, expiration_utc_dt: int):
+    def _create_payment_link(self, ssm_client, amount: float, expiration_utc_ts: int):
         ssm_payment_link_domen_key = os.getenv('SSM_PAYMENT_LINK_DOMEN_KEY')
         ssm_payment_link_encryption_key = os.getenv('SSM_PAYMENT_LINK_ENCRYPTION_KEY')
 
@@ -125,6 +125,6 @@ class DebtPaymentController:
         encryption_key = \
         ssm_client.get_parameter(Name=ssm_payment_link_encryption_key, WithDecryption=True)['Parameter']['Value']
 
-        link_encoded, checksum = encrypt_payment_link(f'{self.debt_id}:{amount}:{expiration_utc_dt}', encryption_key)
+        link_encoded, checksum = encrypt_payment_link(f'{self.debt_id}:{amount}:{expiration_utc_ts}', encryption_key)
         link = f"{domen.rstrip('/')}/payment/link/{link_encoded}?crc={checksum}"
         return link

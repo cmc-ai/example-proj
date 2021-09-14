@@ -36,6 +36,7 @@ class PaymentAPIController(APIController):
         hash = self.params.get('hash')
         crc = self.params.get('crc')
         ssm_payment_link_encryption_key = os.getenv('SSM_PAYMENT_LINK_ENCRYPTION_KEY')
+        print(f'Fetching param: {ssm_payment_link_encryption_key}')
         encryption_key = boto3.client('ssm').get_parameter(Name=ssm_payment_link_encryption_key,
                                                            WithDecryption=True)['Parameter']['Value']
 
@@ -60,11 +61,14 @@ class PaymentAPIController(APIController):
         return HTTPCodes.OK.value, mapped_items
 
     def post_payment(self):
-        # {'id': 1, 'borrowerid': 1, 'accounttype': 'cc', 'summary': 'idk some summary', 'paymentprocessor': 'Swerve',
-        # 'token': 'dasfdasd3fDF', 'clientidexternal': '124132'}
-
-        account_type = self.body.get('accountType', '')
+        accountType = self.body.get('accountType')
+        borrowerId = self.body.get('borrowerId')
+        cardNumber = self.body.get('cardNumber')
+        cvc = self.body.get('cvc')
+        expMonYear = self.body.get('expMonYear')
         summary = self.body.get('summary', '')
+        clientIdExternal = self.body.get('clientIdExternal', '')
+        paymentProcessor = self.body.get('paymentProcessor', '')
         token = self.body.get('token', '')
 
 
