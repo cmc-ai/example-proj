@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: BuildBorrowerAPI# Controls when the workflow will run
+name: BuildBorrowerAPI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
@@ -45,8 +45,9 @@ jobs:
 
       - name: Bundle function with dependencies
         run: |
-            zip -r lambdas/build.zip lambdas/api_borrower/
+            cd lambdas/api_borrower
+            zip -r ../borrower_api.zip ./*
 
       - name: Copy function zip file to S3
         run: |
-            aws s3 cp lambdas/build.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/borrower_api.zip
+            aws s3 cp lambdas/borrower_api.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/borrower_api.zip
