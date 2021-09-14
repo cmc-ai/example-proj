@@ -1,94 +1,16 @@
-import os
-
 import boto3
-
+import os
 from datetime import datetime
-from decimal import Decimal
 
-from dynamo_models import BorrowerMessageModel
+from api_controller_base import APIController
 from constants import HTTPCodes
+from dynamo_models import BorrowerMessageModel
 from helper_functions import ts_to_utc_dt
-from payment_controller import decrypt_payment_link
-from payment_processor.swervepay import SwervePay
 
+
+S3_PRESIGNED_URL_EXPIRATION_SEC = 3600
 LAST_INDEX = -1  # use these indexes to avoid magic numbers in code
 THE_ONLY_INDEX = 0
-S3_PRESIGNED_URL_EXPIRATION_SEC = 3600
-
-
-class APIController(object):
-
-    def __init__(self, path, headers, params, body, db_conn, client_username=None):
-        self.path = path
-        self.headers = headers or {}
-        self.params = params or {}
-        self.body = body or {}
-        self.db_conn = db_conn
-        self._client_id = None
-
-        # Client API section
-        if client_username:
-            query = f"SELECT id FROM Client WHERE username = '{client_username}'"
-            cols, rows = self._execute_select(query)
-            if not rows:
-                print(f'ClientId is not found for client_username {client_username}')
-            else:
-                self._client_id = int(rows[THE_ONLY_INDEX][THE_ONLY_INDEX])
-                print(f'Found ClientId {self._client_id}')
-
-    def _build_filter_string(self, limit_offset=True):
-        offset = self.params.get('offset', 0)
-        limit = self.params.get('limit', 10)
-        params = [p for p in self.params if p not in ['limit', 'offset']]
-
-        param_strings = []
-        for param in params:
-            val = self.params.get(param)
-            if type(val) == str:
-                param_string = f"LOWER({param}) = '{val.lower()}'"
-            else:
-                param_string = f"{param} = {val}"
-            param_strings.append(param_string)
-
-        result = ''
-        if param_strings:
-            result = result + 'WHERE ' + ' AND '.join(param_strings)
-        if limit_offset:
-            result = result + f' LIMIT {limit} OFFSET {offset}'
-
-        return result
-
-    def _execute_insert(self, query):
-        print(f'Executing {query}')
-        self.db_conn.run(query)
-        self.db_conn.commit()
-        return
-
-    def _execute_select(self, query) -> (list, list):
-        print(f'Executing {query}')
-        cursor = self.db_conn.cursor()
-        rows = cursor.execute(query).fetchall()
-        cols = [desc[0] for desc in cursor.description]
-        cursor.close()
-        return cols, rows
-
-    def _map_cols_rows(self, cols, rows):
-        result = []
-        for row in rows:
-            mapped_row = {}
-            for i in range(len(cols)):
-                mapped_row[cols[i]] = self._clear_value(row[i])
-            result.append(mapped_row)
-        return result
-
-    def _clear_value(self, val):
-        if type(val) == str:
-            return val.rstrip()
-        if type(val) == Decimal:
-            return float(val)
-        if type(val) == datetime:
-            return val.strftime('%Y-%m-%d %H:%M:%S')
-        return val
 
 
 class DebtAPIController(APIController):
@@ -358,63 +280,3 @@ class ClientAPIController(APIController):
 class OtherAPIController(APIController):
     def get_report(self):
         return {}
-
-
-class PaymentAPIController(APIController):
-
-    def __init__(self, **kwargs):
-        super(PaymentAPIController, self).__init__(**kwargs)
-        self._sp_proc = None
-
-    def _create_sp_proc(self, debt_id):
-        query = f"SELECT id, clientId FROM Debt WHERE id = {debt_id}"
-        debt_id, client_id = self._execute_select(query)[LAST_INDEX]
-
-        sp_key_prefix = os.getenv('SWERVE_PAY_KEY_PREFIX')
-        acc_sid_key = f'{sp_key_prefix}/{client_id}/account_sid'
-        username_key = f'{sp_key_prefix}/{client_id}/username'
-        apikey_key = f'{sp_key_prefix}/{client_id}/apikey'
-        ssm_client = boto3.client('ssm')
-        acc_sid = ssm_client.get_parameter(Name=acc_sid_key, WithDecryption=False)['Parameter']['Value']
-        username = ssm_client.get_parameter(Name=username_key, WithDecryption=False)['Parameter']['Value']
-        apikey = ssm_client.get_parameter(Name=apikey_key, WithDecryption=True)['Parameter']['Value']
-
-        self._sp_proc = SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
-
-    def get_payment(self):
-        hash = self.params.get('hash')
-        crc = self.params.get('crc')
-        ssm_payment_link_encryption_key = os.getenv('SSM_PAYMENT_LINK_ENCRYPTION_KEY')
-        encryption_key = boto3.client('ssm').get_parameter(Name=ssm_payment_link_encryption_key,
-                                                           WithDecryption=True)['Parameter']['Value']
-
-        decrypted_link, verified = decrypt_payment_link(hash, encryption_key, crc)
-        if not verified:
-            return HTTPCodes.ERROR.value, {'message': 'Link Verification Failed'}
-
-        debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
-        print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
-
-        if int(expiration_utc_ts) < datetime.utcnow().timestamp():
-            return HTTPCodes.OK.value, {'message': 'Link Expired'}
-
-        # get borrower's funding accounts
-        query = f"""
-            SELECT bfa.* 
-            FROM Borrower b JOIN BorrowerFundingAccount bfa ON b.id = bfa.borrowerId
-            WHERE b.debtId = {debt_id}
-        """
-        mapped_items = self._map_cols_rows(*self._execute_select(query))
-
-        return HTTPCodes.OK.value, mapped_items
-
-    def post_payment(self):
-        return HTTPCodes.OK.value, {}
-
-# ----
-# from helper_functions import get_or_create_pg_connection
-# db_conn = get_or_create_pg_connection(None, boto3.client('rds'))
-# c = PaymentAPIController(path='/api/payment',headers={},
-#                          params={'hash': 'MTo0LjU6MTYzMDUwMjQ0Ng==', 'crc': '0x8af86f69'},
-#                          body={},db_conn=db_conn) # ,client_username='test_ilnur'
-# print(c.get_payment())

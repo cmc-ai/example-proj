@@ -2,7 +2,7 @@ import boto3
 import json
 
 from constants import HTTPCodes
-from controllers import PaymentAPIController
+from api_controller_borrower import PaymentAPIController
 from helper_functions import get_or_create_pg_connection
 
 DEFAULT_RESPONSE = {"message": "Path is not recognized"}
