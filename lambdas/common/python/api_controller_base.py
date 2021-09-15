@@ -61,7 +61,7 @@ class APIController(object):
         cursor.close()
         return cols, rows
 
-    def _map_cols_rows(self, cols, rows):
+    def _map_cols_rows(self, cols, rows) -> list:
         result = []
         for row in rows:
             mapped_row = {}

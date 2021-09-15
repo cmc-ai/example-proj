@@ -80,7 +80,7 @@ VALUES
 
 
 INSERT INTO BorrowerFundingAccount
-    (borrowerId, accountType, summary, cardNumber, cvc, expMonYear, clientIdExternal, paymentProcessor, token, createDate, lastUpdateDate)
+    (borrowerId, accountType, summary, cardNumber, cardHolder, cvc, expMonYear, clientIdExternal, paymentProcessor, paymentProcessorUserId, token, createDate, lastUpdateDate)
 VALUES
-    (1, 'cc', 'idk some summary', 8888333366665555, 123, '03/22', 124132, 'Swerve', 'dasfdasd3fDF', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (1, 'cc', 'another summary', 1111333366665555, 125, '03/21', 124132, 'Swerve', 'dasadfdsfdasd3fDF', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    (1, 'cc', 'idk some summary', 8888333366665555, 'Stanislav Nikitin', 123, '03/22', 124132, 'Swerve', '1234', 'dasfdasd3fDF', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (1, 'cc', 'another summary', 5230297993477937, 'Firstname Lastname', 125, '03/21', 124132, 'Swerve', '52353', 'dasadfdsfdasd3fDF', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)

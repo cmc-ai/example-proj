@@ -45,3 +45,8 @@ class HTTPCodes(Enum):
     CREATED = 201
     ERROR = 400
     UNAUTHORIZED = 401
+
+
+class FundingType(Enum):
+    cc = 'cc'
+    ach = 'ach'

@@ -3,12 +3,13 @@ import boto3
 from datetime import datetime
 
 from api_controller_base import APIController
-from constants import HTTPCodes
+from constants import HTTPCodes, FundingType
 from payment_controller import decrypt_payment_link
 from payment_processor.swervepay import SwervePay
 
 LAST_INDEX = -1  # use these indexes to avoid magic numbers in code
 THE_ONLY_INDEX = 0
+PAYMENT_PROCESSOR_NAME = 'SwervePay'
 
 
 class PaymentAPIController(APIController):
@@ -19,9 +20,10 @@ class PaymentAPIController(APIController):
 
     def _create_sp_proc(self, debt_id):
         query = f"SELECT id, clientId FROM Debt WHERE id = {debt_id}"
-        debt_id, client_id = self._execute_select(query)[LAST_INDEX]
+        cols, rows = self._execute_select(query)
+        debt_id, client_id = rows[0]
 
-        sp_key_prefix = os.getenv('SWERVE_PAY_KEY_PREFIX')
+        sp_key_prefix = os.getenv('SWERVE_PAY_KEY_PREFIX').rstrip('/')
         acc_sid_key = f'{sp_key_prefix}/{client_id}/account_sid'
         username_key = f'{sp_key_prefix}/{client_id}/username'
         apikey_key = f'{sp_key_prefix}/{client_id}/apikey'
@@ -32,17 +34,21 @@ class PaymentAPIController(APIController):
 
         self._sp_proc = SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
 
-    def get_payment(self):
-        hash = self.params.get('hash')
-        crc = self.params.get('crc')
+    def _verify_hash(self):
+        hash = self.params.get('hash') or self.body.get('hash')
+        crc = self.params.get('crc') or self.body.get('crc')
+        if not hash or not crc:
+            return '', False
         ssm_payment_link_encryption_key = os.getenv('SSM_PAYMENT_LINK_ENCRYPTION_KEY')
         print(f'Fetching param: {ssm_payment_link_encryption_key}')
         encryption_key = boto3.client('ssm').get_parameter(Name=ssm_payment_link_encryption_key,
                                                            WithDecryption=True)['Parameter']['Value']
+        return decrypt_payment_link(hash, encryption_key, crc)
 
-        decrypted_link, verified = decrypt_payment_link(hash, encryption_key, crc)
+    def get_payment(self):
+        decrypted_link, verified = self._verify_hash()
         if not verified:
-            return HTTPCodes.ERROR.value, {'message': 'Link Verification Failed'}
+            return HTTPCodes.ERROR.value, {'message': 'Verification Failed'}
 
         debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
         print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
@@ -57,27 +63,131 @@ class PaymentAPIController(APIController):
             WHERE b.debtId = {debt_id}
         """
         mapped_items = self._map_cols_rows(*self._execute_select(query))
-
         return HTTPCodes.OK.value, mapped_items
 
     def post_payment(self):
-        accountType = self.body.get('accountType')
-        borrowerId = self.body.get('borrowerId')
-        cardNumber = self.body.get('cardNumber')
-        cvc = self.body.get('cvc')
-        expMonYear = self.body.get('expMonYear')
-        summary = self.body.get('summary', '')
-        clientIdExternal = self.body.get('clientIdExternal', '')
-        paymentProcessor = self.body.get('paymentProcessor', '')
-        token = self.body.get('token', '')
+        decrypted_link, verified = self._verify_hash()
+        if not verified:
+            return HTTPCodes.ERROR.value, {'message': 'Verification Failed'}
 
+        debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
+        print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
 
-        return HTTPCodes.OK.value, {}
+        self._create_sp_proc(debt_id)
 
-# ----
+        # get payment params
+        borrower_funding_account_id = self.body.get('id')
+
+        if not borrower_funding_account_id:
+            print(f'Funding account is not found, will be created')
+
+            cardHolder = self.body.get('cardHolder')
+            firstName = cardHolder.split()[0]
+            lastName = '' if len(cardHolder.split()) < 2 else cardHolder.split()[1]
+
+            # check if user_id is already created by debt_id
+            query = f"""
+                SELECT DISTINCT(bfa.paymentProcessorUserId) as user_id
+                FROM BorrowerFundingAccount bfa JOIN Borrower b ON bfa.borrowerId = b.id
+                WHERE b.debtId = {debt_id}
+            """
+            cols, rows = self._execute_select(query)
+            user_id = ''
+            if rows and rows[0] and rows[0][0]:
+                user_id = rows[0][0].rstrip(' ')
+
+            if not user_id:
+                # create user in Swerve
+                error_code, error_code_description, data_dict = self._sp_proc.create_user(firstName, lastName)
+                print(f'create_user {firstName},{lastName}: {[error_code, error_code_description, data_dict]}')
+                user_id = '' if not data_dict else data_dict.get('data', {})
+                if not user_id:
+                    return HTTPCodes.ERROR.value, {'message': f'Failed to create new payment user {cardHolder}'}
+
+            query = f"SELECT id FROM Borrower WHERE debtId = {debt_id}"
+            cols, rows = self._execute_select(query)
+            borrowerId = rows[0][0]
+
+            print(f'borrowerId, user_id {borrowerId, user_id}')
+
+            # add funding account
+            cardNumber = self.body.get('cardNumber')
+            expMonYear = self.body.get('expMonYear')
+            cvc = self.body.get('cvc')
+            accountType = FundingType.cc.value
+
+            error_code, error_code_description, data_dict = self._sp_proc.add_funding_account(
+                fundingType=accountType,
+                billFirstName=firstName,
+                billLastName=lastName,
+                accountNumber=cardNumber,
+                userid=user_id,
+                cardExpirationDate=expMonYear.replace('/', ''),
+                routingNumber=''
+            )
+            print(f'add_funding_account {cardNumber, expMonYear}: {[error_code, error_code_description, data_dict]}')
+            tokenized_id = '' if not data_dict else data_dict.get('data')
+            if not tokenized_id:
+                return HTTPCodes.ERROR.value, {'message': f'Failed to create new funding account {cardHolder}'}
+
+            # save new funding account into Aurora
+            query = f"""
+                INSERT INTO BorrowerFundingAccount
+                (borrowerId, accountType, cardNumber, 
+                cardHolder, cvc, expMonYear, 
+                paymentProcessor, paymentProcessorUserId, token, 
+                createDate, lastUpdateDate)
+                VALUES 
+                ({borrowerId},'{accountType}',{cardNumber},
+                '{cardHolder}',{cvc},'{expMonYear}',
+                '{PAYMENT_PROCESSOR_NAME}', '{user_id}', '{tokenized_id}',
+                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """
+            self._execute_insert(query)
+
+            # get id of the new account
+            query = f"""
+                SELECT id FROM BorrowerFundingAccount 
+                WHERE borrowerId = {borrowerId} AND paymentProcessorUserId = '{user_id}'
+                AND cardNumber = {cardNumber} AND token = '{tokenized_id}'
+                """
+            cols, rows = self._execute_select(query)
+            borrower_funding_account_id = rows[THE_ONLY_INDEX][THE_ONLY_INDEX]
+
+        query = f"""
+            SELECT bfa.* 
+            FROM BorrowerFundingAccount bfa JOIN Borrower b ON bfa.borrowerId = b.id
+            WHERE b.debtId = {debt_id} AND bfa.id = {borrower_funding_account_id}
+        """
+        query_results = self._map_cols_rows(*self._execute_select(query))
+        if not query_results:
+            return HTTPCodes.ERROR.value, {
+                'message': f'BorrowerFundingAccount {borrower_funding_account_id} doesnt belong to Debt {debt_id}'
+            }
+
+        funding_account = query_results[0]
+        print(f'funding_account {funding_account}')
+        err_code, err_code_description, data_dict = self._sp_proc.make_payment(funding_account.get('accounttype'),
+                                                                               funding_account.get('token'),
+                                                                               amount=debt_amount)
+
+        return HTTPCodes.OK.value, {
+            'error_code':err_code,
+            'error_code_description':err_code_description,
+            'data_dict': data_dict
+        }
+
+#----
 # from helper_functions import get_or_create_pg_connection
 # db_conn = get_or_create_pg_connection(None, boto3.client('rds'))
 # c = PaymentAPIController(path='/api/payment',headers={},
-#                          params={'hash': 'MTo0LjU6MTYzMDUwMjQ0Ng==', 'crc': '0x8af86f69'},
-#                          body={},db_conn=db_conn) # ,client_username='test_ilnur'
-# print(c.get_payment())
+#                          params={},
+#                          body={'hash': 'MTo0LjU6MTYzMDUwMjQ0Ng==',
+#                                'crc': '0x8af86f69',
+#                                'cardNumber':5230297993477937,
+#                                'cardHolder':'Max Tereshin',
+#                                'cvc':123,
+#                                'expMonYear':'03/23',
+#                                },
+#                          db_conn=db_conn) # ,client_username='test_ilnur'
+# print(c.post_payment())
