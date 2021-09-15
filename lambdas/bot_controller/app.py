@@ -117,10 +117,10 @@ def get_discount_proposal(response_msg_and_session_state):
     conn = get_or_create_pg_connection(pg_conn, rds_client)
 
     # save new discount_expiration_dt
-    discount_exp_dt = datetime.now() + timedelta(hours=DEFAULT_DISCOUNT_EXPIRATION_HOURS)
+    discount_exp_dt = datetime.utcnow() + timedelta(hours=DEFAULT_DISCOUNT_EXPIRATION_HOURS)
     query = f"""
         UPDATE Debt SET
-        discountExpirationDateTime = TO_TIMESTAMP('{discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')}', 'YYYY-MM-DD HH24:MI:SS'),
+        discountExpirationDateTimeUTC = TO_TIMESTAMP('{discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')}', 'YYYY-MM-DD HH24:MI:SS'),
         lastUpdateDate = CURRENT_TIMESTAMP
         WHERE id = {response_msg_and_session_state.get('debt_id')}
     """

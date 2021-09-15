@@ -180,14 +180,15 @@ class PaymentAPIController(APIController):
 #----
 # from helper_functions import get_or_create_pg_connection
 # db_conn = get_or_create_pg_connection(None, boto3.client('rds'))
+# body = {"hash": "MTo0LjU6MTYzMDUwMjQ0Ng==",
+#  "crc": "0x8af86f69",
+#  "cardNumber":5230297993477937,
+#  "cardHolder":"Max Tereshin",
+#  "cvc":123,
+#  "expMonYear":"03/23",
+# }
 # c = PaymentAPIController(path='/api/payment',headers={},
 #                          params={},
-#                          body={'hash': 'MTo0LjU6MTYzMDUwMjQ0Ng==',
-#                                'crc': '0x8af86f69',
-#                                'cardNumber':5230297993477937,
-#                                'cardHolder':'Max Tereshin',
-#                                'cvc':123,
-#                                'expMonYear':'03/23',
-#                                },
+#                          body=body,
 #                          db_conn=db_conn) # ,client_username='test_ilnur'
 # print(c.post_payment())
