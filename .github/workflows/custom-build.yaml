@@ -50,8 +50,10 @@ jobs:
 
       - name: Copy function zip file to S3
         run: |
-            aws s3 cp lambdas/borrower_api.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/borrower_api.zip
-            
+            filename=$(md5sum lambdas/borrower_api.zip | awk '{print $1}')
+            aws s3 rm s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/borrower_api/*.zip || true
+            aws s3 cp lambdas/borrower_api.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/borrower_api/$filename.zip
+
       - name: Trigger IAC CI
         uses: mvasigh/dispatch-action@main
         with:
