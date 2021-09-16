@@ -25,8 +25,8 @@ DEFAULT_DISCOUNT_EXPIRATION_HOURS = 24
 
 
 def find_or_create_debt_state(response_msg_and_session_state):
-    debt_id = response_msg_and_session_state.get('debt_id')
-    borrower_id = response_msg_and_session_state.get('borrower_id')
+    debt_id = response_msg_and_session_state.get('debt_record').get('debt_id')
+    borrower_id = response_msg_and_session_state.get('debt_record').get('borrower_id')
 
     debt_records = [d for d in DebtRecordModel.query(debt_id)]
 
@@ -63,7 +63,7 @@ def start_conversation(response_msg_and_session_state):
     query = f"""
                 SELECT c.organization, d.outstandingBalance
                 FROM Debt d JOIN Client c on d.clientId = c.id
-                WHERE d.id = {response_msg_and_session_state.get('debt_id')}
+                WHERE d.id = {response_msg_and_session_state.get('debt_record').get('debt_id')}
             """
     cursor = conn.cursor()
     rows = cursor.execute(query).fetchall()
@@ -92,7 +92,7 @@ def get_more_debt_details(response_msg_and_session_state):
     query = f"""
                 SELECT b.firstName, b.lastName, c.organization, d.outstandingBalance
                 FROM Debt d JOIN Client c on d.clientId = c.id JOIN Borrower b on b.debtId = d.id
-                WHERE d.id = {response_msg_and_session_state.get('debt_id')}
+                WHERE d.id = {response_msg_and_session_state.get('debt_record').get('debt_id')}
                 AND b.phoneNum = '{response_msg_and_session_state.get('originationNumber')}'
                 """
     cursor = conn.cursor()
@@ -110,7 +110,7 @@ def get_payment_link(response_msg_and_session_state):
     conn = get_or_create_pg_connection(pg_conn, rds_client)
 
     print(f'Generating Payment Link')
-    p_controller = DebtPaymentController(response_msg_and_session_state.get('debt_id'))
+    p_controller = DebtPaymentController(response_msg_and_session_state.get('debt_record').get('debt_id'))
     payment_link, exp_minutes = p_controller.get_or_create_payment_link(pg_conn=conn, ssm_client=param_store_client)
 
     return f'Link will be expired in {exp_minutes} minutes: {payment_link}'
@@ -127,7 +127,7 @@ def get_discount_proposal(response_msg_and_session_state):
         UPDATE Debt SET
         discountExpirationDateTimeUTC = TO_TIMESTAMP('{discount_exp_dt.strftime('%Y-%m-%d %H:%M:%S')}', 'YYYY-MM-DD HH24:MI:SS'),
         lastUpdateDate = CURRENT_TIMESTAMP
-        WHERE id = {response_msg_and_session_state.get('debt_id')}
+        WHERE id = {response_msg_and_session_state.get('debt_record').get('debt_id')}
     """
     print(f'QUERY: {query}')
     conn.run(query)
@@ -137,7 +137,7 @@ def get_discount_proposal(response_msg_and_session_state):
     query = f"""
                     SELECT d.discount, d.outstandingBalance
                     FROM Debt d
-                    WHERE d.id = {response_msg_and_session_state.get('debt_id')}
+                    WHERE d.id = {response_msg_and_session_state.get('debt_record').get('debt_id')}
                     """
     cursor = conn.cursor()
     rows = cursor.execute(query).fetchall()
@@ -175,14 +175,14 @@ def process_placeholders(msg: str, response_msg_and_session_state: dict) -> str:
 
 
 def call_chatbot(response_msg_and_session_state):
+    # TODO Move to Param Store
     bot_id = os.getenv('AWS_LEX_BOT_ID', 'A9ENAISYXZ')
     bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID', 'TSTALIASID')
     locale_id = os.getenv('AWS_LEX_LOCALE_ID', 'en_US')
-    # TODO Move to Param Store ^
 
     message = response_msg_and_session_state.get('messageBody')
-    aws_lex_session_id = response_msg_and_session_state.get('aws_lex_session_id')
-    session_state = json.loads(response_msg_and_session_state.get('aws_lex_session'))
+    aws_lex_session_id = response_msg_and_session_state.get('debt_record').get('aws_lex_session_id')
+    session_state = json.loads(response_msg_and_session_state.get('debt_record').get('aws_lex_session'))
 
     print(f'Calling the chatbot bot_id {bot_id} bot_alias_id {bot_alias_id} locale_id {locale_id}')
     chatbot_response = lex_client.recognize_text(
@@ -195,7 +195,7 @@ def call_chatbot(response_msg_and_session_state):
         requestAttributes={}
     )
     print(f'Chatbot response: {chatbot_response}')
-    message = chatbot_response.get('messages')[0].get('content')
+    new_message = chatbot_response.get('messages')[0].get('content')
     new_session_state = chatbot_response.get('sessionState')  # dict
 
     # set LEX_MAX_TTL_SECONDS and LEX_MAX_TTL_TIMES to each context
@@ -208,23 +208,24 @@ def call_chatbot(response_msg_and_session_state):
     new_session_state['activeContexts'] = upd_active_contexts
 
     # update session state in DynamoDB
-    debt_record = DebtRecordModel(debt_id=response_msg_and_session_state.get('debt_id'),
-                                  borrower_id=response_msg_and_session_state.get('borrower_id'),
+    debt_record = DebtRecordModel(debt_id=response_msg_and_session_state.get('debt_record').get('debt_id'),
+                                  borrower_id=response_msg_and_session_state.get('debt_record').get('borrower_id'),
                                   aws_lex_session_id=aws_lex_session_id,
                                   aws_lex_session=json.dumps(new_session_state)
                                   )
     print(f'Add Debt {debt_record.attribute_values} to Table')
     debt_record.save()
+    response_msg_and_session_state['debt_record'] = debt_record.attribute_values
 
-    return process_placeholders(message, response_msg_and_session_state)
+    return process_placeholders(new_message, response_msg_and_session_state)
 
 
 def lambda_handler(event, context):
     for record in event['Records']:
         response_msg_and_session_state = json.loads(record['body'])
 
-        debt_record = find_or_create_debt_state(response_msg_and_session_state)
-        response_msg_and_session_state.update(debt_record)
+        debt_record = find_or_create_debt_state(response_msg_and_session_state.copy())
+        response_msg_and_session_state['debt_record'] = debt_record
 
         print(f'Incoming message and debt record: {response_msg_and_session_state}')
 
@@ -236,4 +237,4 @@ def lambda_handler(event, context):
         new_originationNumber = response_msg_and_session_state.get('destinationNumber')
 
         send_sms(pinoint_client, new_msg, new_originationNumber, new_destinationNumber,
-                 response_msg_and_session_state.get('borrower_id'))
+                 response_msg_and_session_state.get('debt_record').get('borrower_id'))
