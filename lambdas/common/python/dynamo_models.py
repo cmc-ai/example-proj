@@ -12,6 +12,7 @@ class DebtRecordModel(Model):
     debt_id = NumberAttribute(hash_key=True)
     borrower_id = NumberAttribute()
     aws_lex_session_id = UnicodeAttribute()
+    aws_lex_session = UnicodeAttribute()
 
 
 class BorrowerMessageModel(Model):

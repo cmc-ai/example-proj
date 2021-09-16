@@ -8,9 +8,8 @@ import uuid
 
 from datetime import datetime, timedelta
 
-
 # this dependencies are deployed to /opt/python by Lambda Layers
-from constants import ChatbotPlaceholder, ChatbotContext
+from constants import ChatbotPlaceholder, ChatbotContext, LEX_MAX_TTL_SECONDS, LEX_MAX_TTL_TIMES
 from dynamo_models import DebtRecordModel
 from helper_functions import get_or_create_pg_connection
 from sms_functions import send_sms
@@ -28,7 +27,6 @@ DEFAULT_DISCOUNT_EXPIRATION_HOURS = 24
 def find_or_create_debt_state(response_msg_and_session_state):
     debt_id = response_msg_and_session_state.get('debt_id')
     borrower_id = response_msg_and_session_state.get('borrower_id')
-    is_initial_message = False  # for simplicity, move to Aurora later
 
     debt_records = [d for d in DebtRecordModel.query(debt_id)]
 
@@ -37,16 +35,23 @@ def find_or_create_debt_state(response_msg_and_session_state):
         debt_record = debt_records[0]
     else:
         print(f'Debt Id {debt_id} is not found')
+
+        # add one-time StartConversation context
+        session_state = {
+            'activeContexts': [{'name': ChatbotContext.StartConversation.value,
+                                'timeToLive': {'turnsToLive': 1, 'timeToLiveInSeconds': LEX_MAX_TTL_SECONDS},
+                                'contextAttributes': {}}
+                               ]
+        }
         debt_record = DebtRecordModel(debt_id=debt_id,
                                       borrower_id=borrower_id,
-                                      aws_lex_session_id=str(uuid.uuid4()))  # generate uuid for a new session
-        is_initial_message = True
+                                      aws_lex_session_id=str(uuid.uuid4()),  # generate uuid for a new session
+                                      aws_lex_session=json.dumps(session_state)
+                                      )
         print(f'Add Debt {debt_record.attribute_values} to Table')
         debt_record.save()
 
-    state = debt_record.attribute_values  # convert to dict
-    state.update({'is_initial_message': is_initial_message})
-    return state
+    return debt_record.attribute_values  # convert to dict
 
 
 def start_conversation(response_msg_and_session_state):
@@ -173,18 +178,11 @@ def call_chatbot(response_msg_and_session_state):
     bot_id = os.getenv('AWS_LEX_BOT_ID', 'A9ENAISYXZ')
     bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID', 'TSTALIASID')
     locale_id = os.getenv('AWS_LEX_LOCALE_ID', 'en_US')
+    # TODO Move to Param Store ^
+
     message = response_msg_and_session_state.get('messageBody')
     aws_lex_session_id = response_msg_and_session_state.get('aws_lex_session_id')
-
-    session_state = {}
-    if response_msg_and_session_state.get('is_initial_message', True):
-        # add one-time StartConversation context
-        session_state = {
-            'activeContexts': [{'name': ChatbotContext.StartConversation.value,
-                                'timeToLive': {'turnsToLive': 1, 'timeToLiveInSeconds': 86400},
-                                'contextAttributes': {}}
-                               ]
-        }
+    session_state = json.loads(response_msg_and_session_state.get('aws_lex_session'))
 
     print(f'Calling the chatbot bot_id {bot_id} bot_alias_id {bot_alias_id} locale_id {locale_id}')
     chatbot_response = lex_client.recognize_text(
@@ -198,6 +196,25 @@ def call_chatbot(response_msg_and_session_state):
     )
     print(f'Chatbot response: {chatbot_response}')
     message = chatbot_response.get('messages')[0].get('content')
+    new_session_state = chatbot_response.get('sessionState')  # dict
+
+    # set LEX_MAX_TTL_SECONDS and LEX_MAX_TTL_TIMES to each context
+    print(f'set LEX_MAX_TTL_SECONDS and LEX_MAX_TTL_TIMES to each context')
+    upd_active_contexts = []
+    for context in new_session_state.get('activeContexts', []):
+        context['timeToLive']['timeToLiveInSeconds'] = LEX_MAX_TTL_SECONDS
+        context['timeToLive']['turnsToLive'] = LEX_MAX_TTL_TIMES
+        upd_active_contexts.append(context.copy())
+    new_session_state['activeContexts'] = upd_active_contexts
+
+    # update session state in DynamoDB
+    debt_record = DebtRecordModel(debt_id=response_msg_and_session_state.get('debt_id'),
+                                  borrower_id=response_msg_and_session_state.get('borrower_id'),
+                                  aws_lex_session_id=aws_lex_session_id,
+                                  aws_lex_session=json.dumps(new_session_state)
+                                  )
+    print(f'Add Debt {debt_record.attribute_values} to Table')
+    debt_record.save()
 
     return process_placeholders(message, response_msg_and_session_state)
 
@@ -209,7 +226,7 @@ def lambda_handler(event, context):
         debt_record = find_or_create_debt_state(response_msg_and_session_state)
         response_msg_and_session_state.update(debt_record)
 
-        print(f'Incoming message and session state: {response_msg_and_session_state}')
+        print(f'Incoming message and debt record: {response_msg_and_session_state}')
 
         # process the msg+state with Lex
         new_msg = call_chatbot(response_msg_and_session_state)
@@ -220,4 +237,3 @@ def lambda_handler(event, context):
 
         send_sms(pinoint_client, new_msg, new_originationNumber, new_destinationNumber,
                  response_msg_and_session_state.get('borrower_id'))
-

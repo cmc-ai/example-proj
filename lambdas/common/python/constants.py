@@ -5,6 +5,9 @@ INV_SRC_DIALOG = 'DialogCodeHook'
 
 PAYMENT_LINK_HASH_PATTERN = 'debt_id:amount:expiration_utc_ts'
 
+LEX_MAX_TTL_SECONDS = 86400
+LEX_MAX_TTL_TIMES = 20
+
 
 class ChatbotIntent(Enum):
     InitialPositiveIntent = 'InitialPositiveIntent'
