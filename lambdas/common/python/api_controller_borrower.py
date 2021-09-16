@@ -66,6 +66,13 @@ class PaymentAPIController(APIController):
         return HTTPCodes.OK.value, mapped_items
 
     def post_payment(self):
+        """
+        1. If new payment method:
+            1.a. get or create new user in Swerve Pay
+            1.b. add new funding account
+        2. commit payment
+        """
+
         decrypted_link, verified = self._verify_hash()
         if not verified:
             return HTTPCodes.ERROR.value, {'message': 'Verification Failed'}
@@ -112,6 +119,7 @@ class PaymentAPIController(APIController):
 
             # add funding account
             cardNumber = self.body.get('cardNumber')
+            cardNumber_last_4_digits = int(str(cardNumber)[-4:])
             expMonYear = self.body.get('expMonYear')
             cvc = self.body.get('cvc')
             accountType = FundingType.cc.value
@@ -133,13 +141,11 @@ class PaymentAPIController(APIController):
             # save new funding account into Aurora
             query = f"""
                 INSERT INTO BorrowerFundingAccount
-                (borrowerId, accountType, cardNumber, 
-                cardHolder, cvc, expMonYear, 
+                (borrowerId, accountType, cardNumber, cardHolder,
                 paymentProcessor, paymentProcessorUserId, token, 
                 createDate, lastUpdateDate)
                 VALUES 
-                ({borrowerId},'{accountType}',{cardNumber},
-                '{cardHolder}',{cvc},'{expMonYear}',
+                ({borrowerId},'{accountType}',{cardNumber_last_4_digits},'{cardHolder}',
                 '{PAYMENT_PROCESSOR_NAME}', '{user_id}', '{tokenized_id}',
                 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """
@@ -149,7 +155,7 @@ class PaymentAPIController(APIController):
             query = f"""
                 SELECT id FROM BorrowerFundingAccount 
                 WHERE borrowerId = {borrowerId} AND paymentProcessorUserId = '{user_id}'
-                AND cardNumber = {cardNumber} AND token = '{tokenized_id}'
+                AND cardNumber = {cardNumber_last_4_digits} AND token = '{tokenized_id}'
                 """
             cols, rows = self._execute_select(query)
             borrower_funding_account_id = rows[THE_ONLY_INDEX][THE_ONLY_INDEX]
@@ -180,15 +186,15 @@ class PaymentAPIController(APIController):
 #----
 # from helper_functions import get_or_create_pg_connection
 # db_conn = get_or_create_pg_connection(None, boto3.client('rds'))
-# body = {"hash": "MTo0LjU6MTYzMDUwMjQ0Ng==",
-#  "crc": "0x8af86f69",
+# body = {"hash": "MTo1MDAuMzoxNjMyNDgxNDk3",
+#  "crc": "0x95743f54",
 #  "cardNumber":5230297993477937,
 #  "cardHolder":"Max Tereshin",
 #  "cvc":123,
-#  "expMonYear":"03/23",
+#  "expMonYear":"03/23"
 # }
 # c = PaymentAPIController(path='/api/payment',headers={},
 #                          params={},
 #                          body=body,
 #                          db_conn=db_conn) # ,client_username='test_ilnur'
-# print(c.post_payment())
+# print(c.get_payment())

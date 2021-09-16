@@ -121,10 +121,8 @@ CREATE TABLE IF NOT EXISTS BorrowerFundingAccount (
     id              SERIAL,
     borrowerId      int NOT NULL,
     accountType     char(20) NOT NULL,
-    cardNumber      int NOT NULL,
+    cardNumber      int NOT NULL, -- TODO: last 4 digits
     cardHolder      char(50) NOT NULL,
-    cvc             int NOT NULL,
-    expMonYear      char(5) NOT NULL,
     summary         char(50),
     clientIdExternal            char(50),
     paymentProcessor            char(200),
