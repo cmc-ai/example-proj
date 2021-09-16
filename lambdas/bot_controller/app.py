@@ -183,6 +183,7 @@ def call_chatbot(response_msg_and_session_state):
     message = response_msg_and_session_state.get('messageBody')
     aws_lex_session_id = response_msg_and_session_state.get('debt_record').get('aws_lex_session_id')
     session_state = json.loads(response_msg_and_session_state.get('debt_record').get('aws_lex_session'))
+    print(f'Type: {type(session_state)} State: {session_state}')
 
     print(f'Calling the chatbot bot_id {bot_id} bot_alias_id {bot_alias_id} locale_id {locale_id} message {message}')
     chatbot_response = lex_client.recognize_text(
