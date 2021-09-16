@@ -197,16 +197,14 @@ def call_chatbot(response_msg_and_session_state):
     )
     print(f'Chatbot response: {chatbot_response}')
     new_message = chatbot_response.get('messages')[0].get('content')
-    new_session_state = chatbot_response.get('sessionState')  # dict
 
-    # set LEX_MAX_TTL_SECONDS and LEX_MAX_TTL_TIMES to each context
+    # set LEX_MAX_TTL_SECONDS and LEX_MAX_TTL_TIMES to each context, remove other session data
     print(f'set LEX_MAX_TTL_SECONDS and LEX_MAX_TTL_TIMES to each context')
-    upd_active_contexts = []
-    for context in new_session_state.get('activeContexts', []):
+    new_session_state = {'activeContexts': []}
+    for context in chatbot_response.get('sessionState', {}).get('activeContexts', []):
         context['timeToLive']['timeToLiveInSeconds'] = LEX_MAX_TTL_SECONDS
         context['timeToLive']['turnsToLive'] = LEX_MAX_TTL_TIMES
-        upd_active_contexts.append(context.copy())
-    new_session_state['activeContexts'] = upd_active_contexts
+        new_session_state['activeContexts'].append(context.copy())
 
     # update session state in DynamoDB
     debt_record = DebtRecordModel(debt_id=response_msg_and_session_state.get('debt_id'),
