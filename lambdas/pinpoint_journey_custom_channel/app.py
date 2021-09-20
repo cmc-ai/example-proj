@@ -1,7 +1,3 @@
-# OS Envs: PINPOINT_ORIGINATION_NUMBER_KEY
-# Layers : sms_functions
-# Permissions: Dynamo:write, Pinpoint:send_sms, ParamStore:read
-
 import os
 
 import boto3

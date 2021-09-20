@@ -1,0 +1,1 @@
+clientPortfolioId(int),originalBalance(float NOT NULL),outstandingBalance(float NOT NULL),totalPayment(float),discount(float),description(str),firstName(str 50 NOT NULL),lastName(str 50 NOT NULL),phoneNum(str +1xxx),email(str 50),timezone(str),country(str US)

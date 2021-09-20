@@ -182,19 +182,3 @@ class PaymentAPIController(APIController):
             'error_code_description':err_code_description,
             'data_dict': data_dict
         }
-
-#----
-# from helper_functions import get_or_create_pg_connection
-# db_conn = get_or_create_pg_connection(None, boto3.client('rds'))
-# body = {"hash": "MTo1MDAuMzoxNjMyNDgxNDk3",
-#  "crc": "0x95743f54",
-#  "cardNumber":5230297993477937,
-#  "cardHolder":"Max Tereshin",
-#  "cvc":123,
-#  "expMonYear":"03/23"
-# }
-# c = PaymentAPIController(path='/api/payment',headers={},
-#                          params={},
-#                          body=body,
-#                          db_conn=db_conn) # ,client_username='test_ilnur'
-# print(c.get_payment())

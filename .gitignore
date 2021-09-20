@@ -6,3 +6,5 @@ venv/
 
 lambdas/*/package/
 lambdas/*/*.zip
+
+aurora/dummy.csv

@@ -53,3 +53,11 @@ class HTTPCodes(Enum):
 class FundingType(Enum):
     cc = 'cc'
     ach = 'ach'
+
+
+class DBDebtStatus(Enum):
+    waiting_journey_assignment = 'waiting-journey-assignment'
+
+
+class DBBorrowerChannelType(Enum):
+    SMS = 'SMS'

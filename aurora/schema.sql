@@ -90,8 +90,10 @@ CREATE TABLE IF NOT EXISTS Debt (
     outstandingBalance  DECIMAL(12,2) NOT NULL,
     totalPayment        DECIMAL(12,2),
     discount            DECIMAL(12,2),
-    discountExpirationDateTimeUTC  timestamp,
     description         TEXT,
+    discountExpirationDateTimeUTC  timestamp,
+    status              char(32),
+    s3SourceFile        char(200),
 
     createDate      timestamp,
     lastUpdateDate  timestamp,
@@ -110,6 +112,7 @@ CREATE TABLE IF NOT EXISTS Borrower (
     email       char(50),
     timezone    char(50),
     country     char(10),
+    s3SourceFile char(200),
 
     createDate      timestamp,
     lastUpdateDate  timestamp,
