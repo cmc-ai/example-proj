@@ -31,3 +31,6 @@ def lambda_handler(event, context):
 if __name__ == "__main__":
     print(lambda_handler({}, None))
 # PYTHONPATH=../common/python DBEndPoint="chatbot-dev-aurora-db-postgres-1.cd4lkfqaythe.ca-central-1.rds.amazonaws.com"  DatabaseName="symphony" DBUserName="superuser" python3 app.py
+
+
+{"Id":8,"ChannelType":"SMS","Address":"+16502546320","Location":{"Country":"US"}, "User":{"UserId":1, "UserAttributes":  {"FirstName":  ["Stan"], "LastName": ["Nikitin"]}}}
