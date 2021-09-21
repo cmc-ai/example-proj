@@ -149,6 +149,9 @@ def get_discount_proposal(response_msg_and_session_state):
 
 
 def redirect_on_agent(response_msg_and_session_state):
+    global pg_conn
+    global rds_client
+    conn = get_or_create_pg_connection(pg_conn, rds_client)
     debt_id = response_msg_and_session_state.get('debt_id')
 
     # remove debt record from Dynamo
@@ -156,16 +159,21 @@ def redirect_on_agent(response_msg_and_session_state):
     for record in debt_records:  # should be only 1
         record.delete()
 
-    # add JourneyDebtStatus 'redirected-on-agent'
+    # add JourneyDebtStatus 'redirected_on_agent'
     query = f"""
-        WITH jea AS (SELECT id FROM JourneyEntryActivity WHERE debtId = {debt_id} AND exitDateTimeUTC IS NULL),
-        jdsd AS (SELECT id FROM JourneyDebtStatusDefinition 
-                    WHERE statusName = '{DBJourneyDebtStatus.redirected_on_agent.value}')
         INSERT INTO JourneyDebtStatus(journeyEntryActivityId, journeyDebtStatusDefinitionId, createDate, lastUpdateDate)
         SELECT jea_id, jdsd_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-        FROM () j
+        FROM (
+            SELECT jea.id as jea_id, jdsd.id as jdsd_id
+            FROM JourneyEntryActivity jea, JourneyDebtStatusDefinition jdsd
+            WHERE jea.debtId = {debt_id} AND jea.exitDateTimeUTC IS NULL
+            AND jdsd.statusName = '{DBJourneyDebtStatus.redirected_on_agent.value}'
+            LIMIT 1
+        ) j
     """
-
+    print(f'QUERY: {query}')
+    conn.run(query)
+    conn.commit()
 
     msg = f'OK, our agent will contact you shortly'
     return msg
