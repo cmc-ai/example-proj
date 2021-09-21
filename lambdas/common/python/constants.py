@@ -57,6 +57,15 @@ class FundingType(Enum):
 
 class DBDebtStatus(Enum):
     waiting_journey_assignment = 'waiting-journey-assignment'
+    in_journey = 'in-journey'
+    journey_quit = 'journey-quit'
+
+
+class DBJourneyDebtStatus(Enum):
+    is_responded = 'is_responded'
+    agree_to_pay = 'agree_to_pay'
+    paid = 'paid'
+    redirected_on_agent = 'redirected_on_agent'
 
 
 class DBBorrowerChannelType(Enum):
