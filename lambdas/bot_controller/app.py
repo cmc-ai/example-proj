@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timedelta
 
 # this dependencies are deployed to /opt/python by Lambda Layers
-from constants import ChatbotPlaceholder, ChatbotContext, LEX_MAX_TTL_SECONDS, LEX_MAX_TTL_TIMES
+from constants import ChatbotPlaceholder, ChatbotContext, LEX_MAX_TTL_SECONDS, LEX_MAX_TTL_TIMES, DBJourneyDebtStatus
 from dynamo_models import DebtRecordModel
 from helper_functions import get_or_create_pg_connection
 from sms_functions import send_sms
@@ -149,9 +149,23 @@ def get_discount_proposal(response_msg_and_session_state):
 
 
 def redirect_on_agent(response_msg_and_session_state):
-    # TODO: remove debt record from Dynamo ???
-    # TODO:  close Journey(Entry)ExeActivity in Aurora ???
-    # TODO: add DebtStatus 'redirected'
+    debt_id = response_msg_and_session_state.get('debt_id')
+
+    # remove debt record from Dynamo
+    debt_records = [d for d in DebtRecordModel.query(debt_id)]
+    for record in debt_records:  # should be only 1
+        record.delete()
+
+    # add JourneyDebtStatus 'redirected-on-agent'
+    query = f"""
+        WITH jea AS (SELECT id FROM JourneyEntryActivity WHERE debtId = {debt_id} AND exitDateTimeUTC IS NULL),
+        jdsd AS (SELECT id FROM JourneyDebtStatusDefinition 
+                    WHERE statusName = '{DBJourneyDebtStatus.redirected_on_agent.value}')
+        INSERT INTO JourneyDebtStatus(journeyEntryActivityId, journeyDebtStatusDefinitionId, createDate, lastUpdateDate)
+        SELECT jea_id, jdsd_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        FROM () j
+    """
+
 
     msg = f'OK, our agent will contact you shortly'
     return msg
@@ -175,10 +189,15 @@ def process_placeholders(msg: str, response_msg_and_session_state: dict) -> str:
 
 
 def call_chatbot(response_msg_and_session_state):
-    # TODO Move to Param Store
-    bot_id = os.getenv('AWS_LEX_BOT_ID', 'A9ENAISYXZ')
-    bot_alias_id = os.getenv('AWS_LEX_BOT_ALIAS_ID', 'TSTALIASID')
-    locale_id = os.getenv('AWS_LEX_LOCALE_ID', 'en_US')
+    aws_lex_prefix = os.getenv('AWS_LEX_BOT_PREFIX').rstrip("/")
+    bot_id_key = f'{aws_lex_prefix}/bot_id'
+    bot_alias_id_key = f'{aws_lex_prefix}/bot_alias_id'
+    locale_id_key = f'{aws_lex_prefix}/locale_id'
+
+    print(f'Getting params: {bot_id_key} {bot_alias_id_key} {locale_id_key}')
+    bot_id = param_store_client.get_parameter(Name=bot_id_key, WithDecryption=False)['Parameter']['Value']
+    bot_alias_id = param_store_client.get_parameter(Name=bot_alias_id_key, WithDecryption=False)['Parameter']['Value']
+    locale_id = param_store_client.get_parameter(Name=locale_id_key, WithDecryption=False)['Parameter']['Value']
 
     message = response_msg_and_session_state.get('messageBody')
     aws_lex_session_id = response_msg_and_session_state.get('debt_record').get('aws_lex_session_id')
