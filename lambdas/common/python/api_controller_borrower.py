@@ -68,7 +68,7 @@ class PaymentAPIController(APIController):
         query = f"""
             SELECT b.firstName, b.lastName, c.organization, d.outstandingBalance
             FROM Debt d JOIN Client c on d.clientId = c.id JOIN Borrower b on b.debtId = d.id
-            WHERE d.id = {debt_id}'
+            WHERE d.id = {debt_id}
         """
         borrower = self._map_cols_rows(*self._execute_select(query))
 
