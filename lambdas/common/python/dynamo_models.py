@@ -37,3 +37,14 @@ class PaymentLinkModel(Model):
     link = UnicodeAttribute()
     amount = NumberAttribute()
     hash_pattern = UnicodeAttribute()
+
+
+class JourneyProcessStatusModel(Model):
+    class Meta:
+        table_name = os.getenv('DYNAMODB_JOURNEY_PROCESS_STATUS_TABLE')
+        region = os.getenv('AWS_REGION')
+
+    client_id = NumberAttribute(hash_key=True)
+    portfolio_id = NumberAttribute(range_key=True)
+    status = UnicodeAttribute()
+    last_process_utc_ts = NumberAttribute()

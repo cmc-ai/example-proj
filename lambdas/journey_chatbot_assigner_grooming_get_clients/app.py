@@ -1,5 +1,8 @@
+from typing import Dict, List
 import boto3
+import pg8000
 from contextlib import closing
+
 # this dependencies are deployed to /opt/python by Lambda Layers
 from helper_functions import get_or_create_pg_connection
 from constants import DBDebtStatus
@@ -8,7 +11,7 @@ rds_client = boto3.client('rds')
 pg_conn = None
 
 
-def create_db_connection():
+def create_db_connection() -> pg8000.Connection:
     global pg_conn
     global rds_client
     return get_or_create_pg_connection(pg_conn, rds_client)
