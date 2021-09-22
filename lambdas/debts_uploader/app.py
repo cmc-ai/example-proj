@@ -20,17 +20,17 @@ def lambda_handler(event, context):
     # extract meaningful fields
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
-        key = record['s3']['object']['key']  # 1/debts/dt.json
+        key = record['s3']['object']['key']  # debts/1/dt.json
         print(f'Processing {bucket}/{key}')
 
         try:
-            client_id, debts_folder, file_name = key.split('/')
+            debts_folder, client_id, file_name = key.split('/')
             client_id = int(client_id)
             if debts_folder != 'debts':
-                print('Pattern {client_id}/debts/{datetime}.csv  is not recognized')
+                print('Pattern debts/{client_id}/{datetime}.csv  is not recognized')
                 return
         except:
-            print('Pattern {client_id}/debts/{datetime}.csv  is not recognized')
+            print('Pattern debts/{client_id}/{datetime}.csv  is not recognized')
             return
 
         conn = get_or_create_pg_connection(pg_conn, rds_client)

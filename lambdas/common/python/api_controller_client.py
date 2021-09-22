@@ -95,7 +95,7 @@ class DebtAPIController(APIController):
             return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
 
         s3_bucket = os.getenv('CLIENTS_S3_BUCKET_NAME')
-        upload_file_key = f"{self._client_id}/debts/{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}.csv"
+        upload_file_key = f"debts/{self._client_id}/{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}.csv"
 
         url = boto3.client('s3').generate_presigned_url(
             ClientMethod='put_object',
