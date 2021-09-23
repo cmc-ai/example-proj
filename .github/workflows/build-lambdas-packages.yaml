@@ -43,6 +43,9 @@ jobs:
         id: find_changes
 
   job2:
+    strategy:
+      matrix:
+        node: ${{fromJSON(needs.build.outputs.output1)}}
     runs-on: ubuntu-latest
     needs: build
     steps:
