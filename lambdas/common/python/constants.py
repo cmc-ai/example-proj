@@ -70,3 +70,9 @@ class DBJourneyDebtStatus(Enum):
 
 class DBBorrowerChannelType(Enum):
     SMS = 'SMS'
+
+
+class JourneyProcessStatus(Enum):
+    success = 'success'
+    failed = 'failed'
+    in_progress = 'in_progress'

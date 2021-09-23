@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS ClientConfiguration (
     clientPortfolioId       int NOT NULL,
     linkExpMinutes          int,
     gapBetweenJourneysDays  int,
+    updateSegmentInterval   int,
     createDate          timestamp,
     lastUpdateDate      timestamp,
 
