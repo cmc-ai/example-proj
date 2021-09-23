@@ -28,13 +28,13 @@ def lambda_handler(event, context):
             """
     with closing(conn.cursor()) as cursor:
         rows = cursor.execute(query).fetchall()
+        print([{'client_id': i[0], 'pinpoint_project_id': event['pinpoint_project_id']} for i in rows])
         if rows:
             return {
                 'statusCode': 200,
-                'client_ids': rows[0],
-                'params': event,
+                'client_ids': [i[0] for i in rows]
             }
 
 
 if __name__ == "__main__":
-    print(lambda_handler({"project": 123}, None))
+    print(lambda_handler({"pinpoint_project_id": 123}, None))
