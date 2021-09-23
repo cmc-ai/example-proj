@@ -22,6 +22,7 @@ def create_db_connection() -> pg8000.Connection:
 
 
 def lambda_handler(event, context):
+    print(f"Received event: {event}")
     conn = create_db_connection()
     query = f"""
                 SELECT DISTINCT clientid FROM Debt as d WHERE  d.status='{DBDebtStatus.waiting_journey_assignment.value}';
