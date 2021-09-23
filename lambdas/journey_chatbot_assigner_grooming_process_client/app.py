@@ -42,6 +42,7 @@ def get_journey_process_statuses(client_id: int) -> Dict[int, JourneyProcessStat
 
 
 def set_journey_process_status(status: str, journey_process_status: JourneyProcessStatusModel) -> None:
+    print(f"Set status: {status} fot portfolio_id: {journey_process_status.portfolio_id}")
     journey_process_status.status = status
     journey_process_status.save()
 
@@ -152,6 +153,7 @@ def pinpoint_create_import_job(s3_path: str, client_id: int, pinpoint_project_id
             "SegmentName": f"segment_{client_id}",
         }
     )
+    print(f"Import job created. Ret: {ret}")
     return ret
 
 
@@ -175,7 +177,7 @@ def lambda_handler(event, context):
     if borrower_items:
         try:
             s3_path = save_borrower_items_to_s3(client_id=client_id, borrower_items=borrower_items)
-            print("Pinpoint segment JSON saved to: {s3_path}")
+            print(f"Pinpoint segment JSON saved to: {s3_path}")
         except Exception as e:
             handle_fail(journey_process_statuses=journey_process_statuses)
             raise e
@@ -187,6 +189,7 @@ def lambda_handler(event, context):
             handle_fail(journey_process_statuses=journey_process_statuses)
             raise e
 
+    print("Set success status to DynamoDB")
     for portfolio_id in PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO:
         set_journey_process_status(status=JourneyProcessStatus.success.value,
                                    journey_process_status=journey_process_statuses[portfolio_id])
