@@ -37,6 +37,6 @@ def lambda_handler(event, context):
                 'client_ids': [i[0] for i in rows]
             }
 
-
-if __name__ == "__main__":
-    print(lambda_handler({"pinpoint_project_id": '34e7ff51c4824c079b9ab87a6a530c2b'}, None))
+#
+# if __name__ == "__main__":
+#     print(lambda_handler({"pinpoint_project_id": '34e7ff51c4824c079b9ab87a6a530c2b'}, None))
