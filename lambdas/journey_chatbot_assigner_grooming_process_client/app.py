@@ -194,12 +194,3 @@ def lambda_handler(event, context):
         'statusCode': 200,
         'body': s3_path
     }
-
-
-if __name__ == "__main__":
-    print(lambda_handler({
-        "client_id": 1,
-        "pinpoint_project_id": "34e7ff51c4824c079b9ab87a6a530c2b",
-    }, None))
-
-# PYTHONPATH=../common/python DBEndPoint="chatbot-dev-rds-proxy.proxy-cd4lkfqaythe.ca-central-1.rds.amazonaws.com"  DatabaseName="symphony" DBUserName="superuser" DYNAMODB_JOURNEY_PROCESS_STATUS_TABLE="journey-process-status" AWS_REGION="ca-central-1" S3_BUCKET="katabata-journey-chatbot-assigner-grooming" S3_BASE_PATH="pinpoint_segments" PINPOINT_ROLE_ARN="arn:aws:iam::630063752049:role/PinpointSegmentImport" python3 app.py

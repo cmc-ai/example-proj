@@ -1,4 +1,8 @@
-from typing import Dict, List
+# ENV VARIABLE: DBEndPoint="chatbot-dev-aurora-db-postgres-1.cd4lkfqaythe.ca-central-1.rds.amazonaws.com"
+# ENV VARIABLE: DatabaseName="symphony"
+# ENV VARIABLE: DatabaseName="symphony" DBUserName="superuser"
+# ENV VARIABLE: DBUserName="superuser"
+
 import boto3
 import pg8000
 from contextlib import closing
@@ -29,8 +33,3 @@ def lambda_handler(event, context):
                 'statusCode': 200,
                 'body': rows[0]
             }
-
-
-if __name__ == "__main__":
-    print(lambda_handler({}, None))
-# PYTHONPATH=../common/python DBEndPoint="chatbot-dev-aurora-db-postgres-1.cd4lkfqaythe.ca-central-1.rds.amazonaws.com"  DatabaseName="symphony" DBUserName="superuser" python3 app.py
