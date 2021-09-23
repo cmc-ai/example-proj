@@ -164,6 +164,8 @@ def handle_fail(journey_process_statuses: Dict[int, JourneyProcessStatusModel]):
 
 
 def lambda_handler(event, context):
+    print(f"Received event: {event}")
+
     client_id = event['client_id']
     pinpoint_project_id = event['pinpoint_project_id']
 
