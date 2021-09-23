@@ -185,17 +185,17 @@ def lambda_handler(event, context):
             handle_fail(journey_process_statuses=journey_process_statuses)
             raise e
 
-    if s3_path:
-        try:
-            pinpoint_create_import_job(s3_path=s3_path, client_id=client_id, pinpoint_project_id=pinpoint_project_id)
-        except Exception as e:
-            handle_fail(journey_process_statuses=journey_process_statuses)
-            raise e
+        if s3_path:
+            try:
+                pinpoint_create_import_job(s3_path=s3_path, client_id=client_id, pinpoint_project_id=pinpoint_project_id)
+            except Exception as e:
+                handle_fail(journey_process_statuses=journey_process_statuses)
+                raise e
 
-    print("Set success status to DynamoDB")
-    for portfolio_id in PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO:
-        set_journey_process_status(status=JourneyProcessStatus.success.value,
-                                   journey_process_status=journey_process_statuses[portfolio_id])
+        print("Set success status to DynamoDB")
+        for portfolio_id in PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO:
+            set_journey_process_status(status=JourneyProcessStatus.success.value,
+                                       journey_process_status=journey_process_statuses[portfolio_id])
 
     return {
         'statusCode': 200,
