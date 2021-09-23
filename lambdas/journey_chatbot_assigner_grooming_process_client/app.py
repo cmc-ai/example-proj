@@ -1,7 +1,7 @@
 # Manually created DynamoDB table: journey-process-status
 # ENV VARIABLE: DYNAMODB_JOURNEY_PROCESS_STATUS_TABLE="journey-process-status"
-# ENV VARIABLE: S3_BUCKET="katabata-journey-chatbot-assigner-grooming"
-# ENV VARIABLE: S3_BASE_PATH="pinpoint_segments"
+# ENV VARIABLE: CLIENTS_S3_BUCKET_NAME="katabata-journey-chatbot-assigner-grooming"
+# ENV VARIABLE: BASE_PATH="pinpoint_segments"
 # ENV VARIABLE: PINPOINT_ROLE_ARN="arn:aws:iam::630063752049:role/PinpointSegmentImport"
 
 import datetime
@@ -123,8 +123,8 @@ def get_borrower_items(client_id: int, journey_process_statuses: Dict[int, Journ
 
 
 def save_borrower_items_to_s3(client_id: int, borrower_items: List[Dict]) -> str:
-    s3_bucket = os.environ.get("S3_BUCKET")
-    s3_base_path = os.environ.get("S3_BASE_PATH")
+    s3_bucket = os.environ.get("CLIENTS_S3_BUCKET_NAME")
+    s3_base_path = os.environ.get("BASE_PATH")
     out = BytesIO()
     for item in borrower_items:
         out.write(f"{json.dumps(item)}\n".encode())
