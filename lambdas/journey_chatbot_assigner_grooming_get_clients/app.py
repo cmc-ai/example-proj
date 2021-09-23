@@ -30,11 +30,10 @@ def lambda_handler(event, context):
             """
     with closing(conn.cursor()) as cursor:
         rows = cursor.execute(query).fetchall()
-        print([{'client_id': i[0], 'pinpoint_project_id': params['pinpoint_project_id']} for i in rows])
         if rows:
             return {
                 'statusCode': 200,
-                'client_ids': [i[0] for i in rows]
+                'items': [{'client_id': i[0], 'pinpoint_project_id': params['pinpoint_project_id']} for i in rows]
             }
 
 #
