@@ -31,5 +31,5 @@ def lambda_handler(event, context):
         if rows:
             return {
                 'statusCode': 200,
-                'body': rows[0]
+                'client_ids': rows[0]
             }
