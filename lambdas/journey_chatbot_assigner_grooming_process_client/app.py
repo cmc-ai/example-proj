@@ -133,7 +133,8 @@ def save_borrower_items_to_s3(client_id: int, borrower_items: List[Dict]) -> str
     s3_client.put_object(
         Body=out,
         Bucket=s3_bucket,
-        Key=os.path.join(s3_base_path, f"client_id_{client_id}.json")
+        Key=os.path.join(s3_base_path, f"client_id_{client_id}.json"),
+        ServerSideEncryption='aws:kms'
     )
 
     return "s3://{}".format(os.path.join(s3_bucket, s3_base_path, f"client_id_{client_id}.json"))
