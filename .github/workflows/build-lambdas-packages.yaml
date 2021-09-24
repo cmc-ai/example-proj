@@ -38,32 +38,23 @@ jobs:
           token: ${{ secrets.IAC_PAT }}
       - name: Find changes
         run: |
-          set -x
-          ls -la
-          git status
-          git log -n 3
-          lambda_changes=$(git diff --name-only HEAD^..HEAD | grep ^lambdas/)
-          if  [ -z $lambda_changes ]; then
-            echo "No changes found"
-            echo "::set-output name=lambdas::[]"
-            echo "::set-output name=anything_to_build::false"
-          else
-            str1=""
-            echo "Changes found, let build lambda package for each of them"
-            echo $lambda_changes | while read changes ;
-              do str1="$str1\"$changes\" "
-            done
-            str2="[$str1]"
-            echo "::set-output name=lambdas::$str2"
-            echo "::set-output name=anything_to_build::true"
-          fi
+          str1=""
+          changes=$(git diff --name-only HEAD^..HEAD | grep ^lambdas)
+          changes=$(echo $changes | sed 's/\(.*\)\/\(.*\)\/.*$/\1\/\2/' | uniq)
+          for change in $(echo $changes); do
+            str1="$str1\"$change\" "
+            echo "str1 is:$str1"
+          done
+          str1=${str1::-1}
+          echo "str1 after circle:$str1"
+          echo "::set-output name=lambdas::[$str1]"
         id: find_changes
 
   build-package:
     strategy:
       matrix:
-        node: ${{fromJSON(needs.build.outputs.output1)}}
+        node: ${{fromJSON(needs.check-changes.outputs.output1)}}
     runs-on: ubuntu-latest
     needs: check-changes
     steps:
-      - run: echo ${{needs.build.outputs.output1}}
+      - run: echo ${{needs.check-changes.outputs.output1}}
