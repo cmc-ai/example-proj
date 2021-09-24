@@ -37,6 +37,7 @@ jobs:
           token: ${{ secrets.IAC_PAT }}
       - name: Find changes
         run: |
+          set -x
           ls -la
           git status
           git log -n 3
