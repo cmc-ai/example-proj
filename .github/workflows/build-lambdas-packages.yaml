@@ -23,6 +23,8 @@ jobs:
       #- run: echo ${{secrets.AWS_ACCESS_KEY_ID_TEST}}
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
         #with:
           #ref: ${{ github.event.pull_request.head.sha }}
           #submodules: true
@@ -35,9 +37,13 @@ jobs:
           token: ${{ secrets.IAC_PAT }}
       - name: Find changes
         run: |
+          set -x
           ls -la
           git status
-          lambda_changes=$(git diff --name-only HEAD^..HEAD | grep ^lambdas/)
+          git log -n 3
+          git diff --name-only HEAD^..HEAD
+          lambda_changes=$(git diff --name-only HEAD^..HEAD | grep '^lambdas')
+          echo "lambda_changes is: $lambda_changes"
           if  [ -z $lambda_changes ]; then
             echo "No changes found"
             echo "::set-output name=lambdas::[]"
