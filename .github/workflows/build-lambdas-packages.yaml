@@ -13,12 +13,12 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build:
+  check-changes:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     # Steps represent a sequence of tasks that will be executed as part of the job
     outputs:
-      output1: ${{ steps.find_changes.outputs.test }}
+      output1: ${{ steps.find_changes.outputs.lambdas }}
     steps:
       #- run: echo ${{secrets.AWS_ACCESS_KEY_ID_TEST}}
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -39,10 +39,23 @@ jobs:
             aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             aws-region: ${{ secrets.AWS_REGION }}
       - name: Find changes
-        run: echo "::set-output name=test::["1", "2", "3"]"
+        run: |
+          lambda_changes=$(git diff --name-only HEAD^..HEAD | grep ^lambdas/)
+          if  [ -z $lambda_changes ]; then
+            echo "No changes found"
+            echo "::set-output name=lambdas::[]"
+          else
+            str1=""
+            echo "Changes found, let build lambda package for each of them"
+            echo $lambda_changes | while read changes ;
+              do str1="$str1\"$line\" "
+            done
+            str2="[$str1]"
+            echo "::set-output name=lambdas::$str2"
+          fi
         id: find_changes
 
-  job2:
+  build-package:
     strategy:
       matrix:
         node: ${{fromJSON(needs.build.outputs.output1)}}
