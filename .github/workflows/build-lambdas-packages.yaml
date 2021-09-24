@@ -42,7 +42,7 @@ jobs:
           git status
           git log -n 3
           git diff --name-only HEAD^..HEAD
-          lambda_changes=$(git diff --name-only HEAD^..HEAD | grep '^lambdas')
+          lambda_changes=$(git diff --name-only HEAD^..HEAD | grep '^lambdas/' || true)
           echo "lambda_changes is: $lambda_changes"
           if  [ -z $lambda_changes ]; then
             echo "No changes found"
