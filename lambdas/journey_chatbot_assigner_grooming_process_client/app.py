@@ -187,7 +187,8 @@ def lambda_handler(event, context):
 
         if s3_path:
             try:
-                pinpoint_create_import_job(s3_path=s3_path, client_id=client_id, pinpoint_project_id=pinpoint_project_id)
+                pinpoint_create_import_job(s3_path=s3_path, client_id=client_id,
+                                           pinpoint_project_id=pinpoint_project_id)
             except Exception as e:
                 handle_fail(journey_process_statuses=journey_process_statuses)
                 raise e
@@ -205,9 +206,10 @@ def lambda_handler(event, context):
 
 if __name__ == "__main__":
     print(lambda_handler({
-        "client_id": 1,
-        "pinpoint_project_id": "34e7ff51c4824c079b9ab87a6a530c2b"
+        "Input": {
+            "client_id": 1,
+            "pinpoint_project_id": "34e7ff51c4824c079b9ab87a6a530c2b"
+        }
     }, None))
-
 
 # PYTHONPATH=../common/python DBEndPoint="chatbot-dev-rds-proxy.proxy-cd4lkfqaythe.ca-central-1.rds.amazonaws.com"  DatabaseName="symphony" DBUserName="superuser" DYNAMODB_JOURNEY_PROCESS_STATUS_TABLE="journey-process-status" AWS_REGION="ca-central-1" CLIENTS_S3_BUCKET_NAME="chatbot-dev-clients-data" BASE_PATH="pinpoint_segments" PINPOINT_ROLE_ARN="arn:aws:iam::630063752049:role/PinpointSegmentImport" python3 app.py

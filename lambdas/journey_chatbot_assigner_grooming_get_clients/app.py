@@ -3,6 +3,7 @@
 # ENV VARIABLE: DatabaseName="symphony" DBUserName="superuser"
 # ENV VARIABLE: DBUserName="superuser"
 
+import time
 import boto3
 import pg8000
 from contextlib import closing
@@ -33,7 +34,8 @@ def lambda_handler(event, context):
         if rows:
             return {
                 'statusCode': 200,
-                'items': [{'client_id': i[0], 'pinpoint_project_id': params['pinpoint_project_id']} for i in rows]
+                'items': [{'client_id': i[0], 'pinpoint_project_id': params['pinpoint_project_id']} for i in rows],
+                'timestamp': int(time.time())
             }
 
 #
