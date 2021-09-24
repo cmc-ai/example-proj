@@ -49,7 +49,7 @@ jobs:
             str1=""
             echo "Changes found, let build lambda package for each of them"
             echo $lambda_changes | while read changes ;
-              do str1="$str1\"$line\" "
+              do str1="$str1\"$changes\" "
             done
             str2="[$str1]"
             echo "::set-output name=lambdas::$str2"
