@@ -1,7 +1,7 @@
 # Manually created DynamoDB table: journey-process-status
 # ENV VARIABLE: DYNAMODB_JOURNEY_PROCESS_STATUS_TABLE="journey-process-status"
-# ENV VARIABLE: S3_BUCKET="katabata-journey-chatbot-assigner-grooming"
-# ENV VARIABLE: S3_BASE_PATH="pinpoint_segments"
+# ENV VARIABLE: CLIENTS_S3_BUCKET_NAME="katabata-journey-chatbot-assigner-grooming"
+# ENV VARIABLE: BASE_PATH="pinpoint_segments"
 # ENV VARIABLE: PINPOINT_ROLE_ARN="arn:aws:iam::630063752049:role/PinpointSegmentImport"
 
 import datetime
@@ -42,6 +42,7 @@ def get_journey_process_statuses(client_id: int) -> Dict[int, JourneyProcessStat
 
 
 def set_journey_process_status(status: str, journey_process_status: JourneyProcessStatusModel) -> None:
+    print(f"Set status: {status} for portfolio_id: {journey_process_status.portfolio_id}")
     journey_process_status.status = status
     journey_process_status.save()
 
@@ -123,8 +124,8 @@ def get_borrower_items(client_id: int, journey_process_statuses: Dict[int, Journ
 
 
 def save_borrower_items_to_s3(client_id: int, borrower_items: List[Dict]) -> str:
-    s3_bucket = os.environ.get("S3_BUCKET")
-    s3_base_path = os.environ.get("S3_BASE_PATH")
+    s3_bucket = os.environ.get("CLIENTS_S3_BUCKET_NAME")
+    s3_base_path = os.environ.get("BASE_PATH")
     out = BytesIO()
     for item in borrower_items:
         out.write(f"{json.dumps(item)}\n".encode())
@@ -133,7 +134,8 @@ def save_borrower_items_to_s3(client_id: int, borrower_items: List[Dict]) -> str
     s3_client.put_object(
         Body=out,
         Bucket=s3_bucket,
-        Key=os.path.join(s3_base_path, f"client_id_{client_id}.json")
+        Key=os.path.join(s3_base_path, f"client_id_{client_id}.json"),
+        ServerSideEncryption='aws:kms'
     )
 
     return "s3://{}".format(os.path.join(s3_bucket, s3_base_path, f"client_id_{client_id}.json"))
@@ -151,6 +153,7 @@ def pinpoint_create_import_job(s3_path: str, client_id: int, pinpoint_project_id
             "SegmentName": f"segment_{client_id}",
         }
     )
+    print(f"Import job created. Ret: {ret}")
     return ret
 
 
@@ -161,8 +164,11 @@ def handle_fail(journey_process_statuses: Dict[int, JourneyProcessStatusModel]):
 
 
 def lambda_handler(event, context):
-    client_id = event['client_id']
-    pinpoint_project_id = event['pinpoint_project_id']
+    print(f"Received event: {event}")
+
+    params = event['Input']
+    client_id = params['client_id']
+    pinpoint_project_id = params['pinpoint_project_id']
 
     print(f"Run journey process update for {client_id} ")
     print("Get journey process statuses")
@@ -174,23 +180,34 @@ def lambda_handler(event, context):
     if borrower_items:
         try:
             s3_path = save_borrower_items_to_s3(client_id=client_id, borrower_items=borrower_items)
-            print("Pinpoint segment JSON saved to: {s3_path}")
+            print(f"Pinpoint segment JSON saved to: {s3_path}")
         except Exception as e:
             handle_fail(journey_process_statuses=journey_process_statuses)
             raise e
 
-    if s3_path:
-        try:
-            pinpoint_create_import_job(s3_path=s3_path, client_id=client_id, pinpoint_project_id=pinpoint_project_id)
-        except Exception as e:
-            handle_fail(journey_process_statuses=journey_process_statuses)
-            raise e
+        if s3_path:
+            try:
+                pinpoint_create_import_job(s3_path=s3_path, client_id=client_id, pinpoint_project_id=pinpoint_project_id)
+            except Exception as e:
+                handle_fail(journey_process_statuses=journey_process_statuses)
+                raise e
 
-    for portfolio_id in PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO:
-        set_journey_process_status(status=JourneyProcessStatus.success.value,
-                                   journey_process_status=journey_process_statuses[portfolio_id])
+        print("Set success status to DynamoDB")
+        for portfolio_id in PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO:
+            set_journey_process_status(status=JourneyProcessStatus.success.value,
+                                       journey_process_status=journey_process_statuses[portfolio_id])
 
     return {
         'statusCode': 200,
         'body': s3_path
     }
+
+
+if __name__ == "__main__":
+    print(lambda_handler({
+        "client_id": 1,
+        "pinpoint_project_id": "34e7ff51c4824c079b9ab87a6a530c2b"
+    }, None))
+
+
+# PYTHONPATH=../common/python DBEndPoint="chatbot-dev-rds-proxy.proxy-cd4lkfqaythe.ca-central-1.rds.amazonaws.com"  DatabaseName="symphony" DBUserName="superuser" DYNAMODB_JOURNEY_PROCESS_STATUS_TABLE="journey-process-status" AWS_REGION="ca-central-1" CLIENTS_S3_BUCKET_NAME="chatbot-dev-clients-data" BASE_PATH="pinpoint_segments" PINPOINT_ROLE_ARN="arn:aws:iam::630063752049:role/PinpointSegmentImport" python3 app.py

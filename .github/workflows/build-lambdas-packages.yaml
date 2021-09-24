@@ -60,6 +60,6 @@ jobs:
       matrix:
         node: ${{fromJSON(needs.build.outputs.output1)}}
     runs-on: ubuntu-latest
-    needs: build
+    needs: check-changes
     steps:
       - run: echo ${{needs.build.outputs.output1}}
