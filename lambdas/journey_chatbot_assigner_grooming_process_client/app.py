@@ -25,6 +25,7 @@ pg_conn = None
 
 # Use this set to reduce number of a DB calls
 PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO = set()
+PROCESSED_DEBTS_ID = set()
 CURRENT_UTC_TS = int(datetime.datetime.utcnow().timestamp())
 
 
@@ -71,6 +72,10 @@ def update_or_create_journey_process_status(client_id: int, portfolio_id: int, s
 
 
 def is_record_need_to_process(record: Dict, journey_process_statuses: Dict[int, JourneyProcessStatusModel]) -> bool:
+    # If we already added this portfolio_id to process list return True
+    if record['portfolio_id'] in PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO:
+        return True
+
     if (record['portfolio_id'] not in journey_process_statuses
             or journey_process_statuses[record['portfolio_id']].status == JourneyProcessStatus.failed.value
             or (CURRENT_UTC_TS - journey_process_statuses[
@@ -83,7 +88,7 @@ def is_record_need_to_process(record: Dict, journey_process_statuses: Dict[int, 
 def get_borrower_items(client_id: int, journey_process_statuses: Dict[int, JourneyProcessStatusModel]) -> List[Dict]:
     conn = create_db_connection()
     query = f"""
-                    select b.id, b.channeltype, b.phonenum, b.country, b.firstname, b.lastname, cp.id as portfolio_id, cc.updateSegmentInterval from public.Debt as d
+                    select d.id as debt_id, b.id, b.channeltype, b.phonenum, b.country, b.firstname, b.lastname, cp.id as portfolio_id, cc.updateSegmentInterval from public.Debt as d
                     join public.ClientPortfolio cp on d.clientportfolioid = cp.id
                     join public.clientconfiguration cc on cc.clientportfolioid = cp.id
                     join public.Borrower as b on b.debtid = d.id
@@ -100,11 +105,15 @@ def get_borrower_items(client_id: int, journey_process_statuses: Dict[int, Journ
                 # Build dict based on column names and values
                 record = dict(zip(column_names, [v.rstrip() if isinstance(v, str) else v for v in row]))
 
+                print("record", record)
                 if is_record_need_to_process(record=record, journey_process_statuses=journey_process_statuses):
                     update_or_create_journey_process_status(client_id=client_id,
                                                             status=JourneyProcessStatus.in_progress.value,
                                                             portfolio_id=record['portfolio_id'],
                                                             journey_process_statuses=journey_process_statuses)
+                    # Save processed debt id
+                    PROCESSED_DEBTS_ID.add(record['debt_id'])
+
                     data.append(
                         {
                             "Id": record['id'],
@@ -141,20 +150,52 @@ def save_borrower_items_to_s3(client_id: int, borrower_items: List[Dict]) -> str
     return "s3://{}".format(os.path.join(s3_bucket, s3_base_path, f"client_id_{client_id}.json"))
 
 
+def get_pinpoint_segments(pinpoint_project_id: str) -> Dict:
+    ret = pinpoint_client.get_segments(
+        ApplicationId=pinpoint_project_id
+    )
+    return ret['SegmentsResponse']['Item']
+
+
+def get_segment_by_name(segment_name: str, pinpoint_project_id: str) -> Dict:
+    all_segments = get_pinpoint_segments(pinpoint_project_id=pinpoint_project_id)
+    for segment in all_segments:
+        if segment['Name'] == segment_name:
+            return segment
+    return {}
+
+
 def pinpoint_create_import_job(s3_path: str, client_id: int, pinpoint_project_id: str) -> Dict:
-    print("Create import job")
+    selected_segment = get_segment_by_name(segment_name=f"segment_{client_id}", pinpoint_project_id=pinpoint_project_id)
+    print(f"Selected segment: {selected_segment}")
+
+    import_job_request = {
+        "DefineSegment": True,
+        "Format": "JSON",
+        "S3Url": s3_path,
+        "RoleArn": os.getenv("PINPOINT_ROLE_ARN"),
+        "SegmentName": f"segment_{client_id}",
+    }
+
+    if selected_segment:
+        print(f"Wil be updated existing segment with id: {selected_segment['Id']}")
+        import_job_request["SegmentId"] = selected_segment['Id']
+
     ret = pinpoint_client.create_import_job(
         ApplicationId=pinpoint_project_id,
-        ImportJobRequest={
-            "DefineSegment": True,
-            "Format": "JSON",
-            "S3Url": s3_path,
-            "RoleArn": os.getenv("PINPOINT_ROLE_ARN"),
-            "SegmentName": f"segment_{client_id}",
-        }
+        ImportJobRequest=import_job_request
     )
     print(f"Import job created. Ret: {ret}")
     return ret
+
+
+def set_in_journey_status_in_rds():
+    print("PROCESSED_DEBTS_ID", PROCESSED_DEBTS_ID)
+    conn = create_db_connection()
+    with closing(conn.cursor()) as cursor:
+        cursor.executemany("UPDATE public.debt SET status=%s WHERE id= %s;",
+                           [(DBDebtStatus.in_journey.value, i) for i in PROCESSED_DEBTS_ID])
+        conn.commit()
 
 
 def handle_fail(journey_process_statuses: Dict[int, JourneyProcessStatusModel]):
@@ -193,10 +234,15 @@ def lambda_handler(event, context):
                 handle_fail(journey_process_statuses=journey_process_statuses)
                 raise e
 
+        print("Set in journey status in RDS")
+        set_in_journey_status_in_rds()
+
         print("Set success status to DynamoDB")
         for portfolio_id in PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO:
             set_journey_process_status(status=JourneyProcessStatus.success.value,
                                        journey_process_status=journey_process_statuses[portfolio_id])
+
+    get_pinpoint_segments(pinpoint_project_id=pinpoint_project_id)
 
     return {
         'statusCode': 200,
@@ -207,7 +253,7 @@ def lambda_handler(event, context):
 if __name__ == "__main__":
     print(lambda_handler({
         "Input": {
-            "client_id": 1,
+            "client_id": 43,
             "pinpoint_project_id": "34e7ff51c4824c079b9ab87a6a530c2b"
         }
     }, None))
