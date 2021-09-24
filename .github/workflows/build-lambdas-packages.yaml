@@ -23,6 +23,8 @@ jobs:
       #- run: echo ${{secrets.AWS_ACCESS_KEY_ID_TEST}}
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
         #with:
           #ref: ${{ github.event.pull_request.head.sha }}
           #submodules: true
@@ -37,6 +39,7 @@ jobs:
         run: |
           ls -la
           git status
+          git log -n 3
           lambda_changes=$(git diff --name-only HEAD^..HEAD | grep ^lambdas/)
           if  [ -z $lambda_changes ]; then
             echo "No changes found"
