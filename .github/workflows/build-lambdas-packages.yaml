@@ -4,8 +4,9 @@ name: Build Lambda Packages and upload it to s3
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ master , build-packages ]
-
+    branches: [ master , build-packages , lambda_builds ]
+      paths:
+        - 'lambdas/**'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -45,6 +46,7 @@ jobs:
           if  [ -z $lambda_changes ]; then
             echo "No changes found"
             echo "::set-output name=lambdas::[]"
+            echo "::set-output name=anything_to_build::false"
           else
             str1=""
             echo "Changes found, let build lambda package for each of them"
@@ -53,6 +55,7 @@ jobs:
             done
             str2="[$str1]"
             echo "::set-output name=lambdas::$str2"
+            echo "::set-output name=anything_to_build::true"
           fi
         id: find_changes
 
