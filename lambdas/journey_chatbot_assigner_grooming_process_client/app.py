@@ -12,6 +12,7 @@ import boto3
 import pg8000
 from contextlib import closing
 from io import BytesIO
+from botocore.exceptions import ClientError
 
 # this dependencies are deployed to /opt/python by Lambda Layers
 from helper_functions import get_or_create_pg_connection
@@ -132,9 +133,30 @@ def get_borrower_items(client_id: int, journey_process_statuses: Dict[int, Journ
         return data
 
 
+def get_segment_from_s3(client_id: int) -> List[Dict]:
+    s3_bucket = os.environ.get("CLIENTS_S3_BUCKET_NAME")
+    s3_base_path = os.environ.get("BASE_PATH")
+    try:
+        obj = s3_client.get_object(Bucket=s3_bucket, Key=os.path.join(s3_base_path, f"client_id_{client_id}.json"))
+
+        segments = []
+        for item in obj['Body'].read().decode().split('\n'):
+            if item:
+                segments.append(json.loads(item))
+        return segments
+    except ClientError as e:
+        if e.response['Error']['Code'] == "NoSuchKey":
+            return []
+        raise e
+
+
 def save_borrower_items_to_s3(client_id: int, borrower_items: List[Dict]) -> str:
     s3_bucket = os.environ.get("CLIENTS_S3_BUCKET_NAME")
     s3_base_path = os.environ.get("BASE_PATH")
+
+    already_saved_segments = get_segment_from_s3(client_id=client_id)
+    borrower_items.extend(already_saved_segments)
+
     out = BytesIO()
     for item in borrower_items:
         out.write(f"{json.dumps(item)}\n".encode())
