@@ -3,7 +3,7 @@
 name: Build Lambda Packages and upload it to s3
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
-  push:
+  #push:
     #branches: [ master , build-packages , lambda_builds ]
     #paths:
     #  - 'lambdas/**'
