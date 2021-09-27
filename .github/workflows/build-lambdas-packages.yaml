@@ -64,7 +64,10 @@ jobs:
           owner: cmc-ai
           repo: example-proj
           github_token: ${{ secrets.IAC_PAT }}
-          inputs: '{ "lambda_2build" : ${{ matrix.lambda_path }}} }'
-          wait_workflow: false
+          inputs: '{ "lambda_2build" : "${{ matrix.lambda_path }}" }'
+          wait_workflow: true
+          workflow_file_name: build-lambdas-package.yaml
+          ref: lambda_builds
+
 
 
