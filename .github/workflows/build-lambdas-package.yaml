@@ -10,7 +10,7 @@ on:
   # Allows you to run this workflow manually from the Actions tab
  workflow_dispatch:
     inputs:
-      lamdba_2build:
+      lambda_2build:
         required: true
         description: Please specify Lambda function path to build, usually lambdas/lambda_name
 
@@ -24,7 +24,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: master
           submodules: true
       - name: Checkout Dependencies Repo
         uses: actions/checkout@v2
@@ -42,20 +42,20 @@ jobs:
         uses: docker://lambci/lambda:build-python3.8
         with:
             entrypoint: pip
-            args: install -r ${{ github.event.inputs.lamdba_2build }}/requirements.txt --target lambdas/api_borrower/${{ github.event.inputs.lamdba_2build }}
+            args: install -r ${{ github.event.inputs.lambda_2build }}/requirements.txt --target lambdas/api_borrower/${{ github.event.inputs.lambda_2build }}
       - id: get_lambda_name
         run: |
-          lambda_name=$(echo ${{ github.event.inputs.lamdba_2build }} | sed 's/.*\/\(.*\)$/\1/')
+          lambda_name=$(echo ${{ github.event.inputs.lambda_2build }} | sed 's/.*\/\(.*\)$/\1/')
           echo "::set-output name=lambda_name::$lambda_name"
           echo "Lambda name is:$lambda_name"
       - name: Bundle function with dependencies
         run: |
-            cd ${{ github.event.inputs.lamdba_2build }}
+            cd ${{ github.event.inputs.lambda_2build }}
             zip -r ../${{ steps.get_lambda_name.outputs.lambda_name }}.zip ./*
 
       - name: Copy function zip file to S3
         run: |
             filename=$(md5sum lambdas/${{ steps.get_lambda_name.outputs.lambda_name }}.zip | awk '{print $1}')
             aws s3 rm s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/*.zip || true
-            aws s3 cp ${{ github.event.inputs.lamdba_2build }}.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/$filename.zip
+            aws s3 cp ${{ github.event.inputs.lambda_2build }}.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/$filename.zip
 

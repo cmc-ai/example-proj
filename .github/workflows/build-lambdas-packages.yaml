@@ -59,42 +59,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: check-changes
     steps:
-      #- run: echo ${{secrets.AWS_ACCESS_KEY_ID_TEST}}
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: convictional/trigger-workflow-and-wait@v1.3.0
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          submodules: true
-      - name: Checkout Dependencies Repo
-        uses: actions/checkout@v2
-        with:
-          repository: cmc-ai/payment-processor
-          ref: main
-          path: payment-processor
-          token: ${{ secrets.IAC_PAT }}
-      - uses: aws-actions/configure-aws-credentials@v1
-        with:
-            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies with LambCI
-        uses: docker://lambci/lambda:build-python3.8
-        with:
-            entrypoint: pip
-            args: install -r ${{ matrix.lambda_path }}/requirements.txt --target lambdas/api_borrower/${{ matrix.lambda_path }}
-      - id: get_lambda_name
-        run: |
-          lambda_name=$(echo ${{ matrix.lambda_path }} | sed 's/.*\/\(.*\)$/\1/')
-          echo "::set-output name=lambda_name::$lambda_name"
-          echo "Lambda name is:$lambda_name"
-      - name: Bundle function with dependencies
-        run: |
-            cd ${{ matrix.lambda_path }}
-            zip -r ../${{ steps.get_lambda_name.outputs.lambda_name }}.zip ./*
+          owner: cmc-ai
+          repo: example-proj
+          github_token: ${{ secrets.IAC_PAT }}
+          inputs: '{ "lambda_2build" : ${{ matrix.lambda_path }}} }'
+          wait_workflow: false
 
-      - name: Copy function zip file to S3
-        run: |
-            filename=$(md5sum lambdas/${{ steps.get_lambda_name.outputs.lambda_name }}.zip | awk '{print $1}')
-            aws s3 rm s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/*.zip || true
-            aws s3 cp ${{ matrix.lambda_path }}.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/$filename.zip
 
