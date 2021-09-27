@@ -47,6 +47,7 @@ jobs:
               echo "str1 is:$str1"
             done
             str1=${str1::-1}
+          fi
           echo "str1 after circle:$str1"
           echo "::set-output name=lambdas::[$str1]"
         id: find_changes
