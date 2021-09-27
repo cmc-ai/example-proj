@@ -40,12 +40,13 @@ jobs:
         run: |
           str1=""
           changes=$(git diff --name-only HEAD^..HEAD | grep ^lambdas)
-          changes=$(echo $changes | sed 's/\(.*\)\/\(.*\)\/.*$/\1\/\2/' | uniq)
-          for change in $(echo $changes); do
-            str1="$str1\"$change\" "
-            echo "str1 is:$str1"
-          done
-          str1=${str1::-1}
+          if [ "$changes"]; then
+            changes=$(echo $changes | sed 's/\(.*\)\/\(.*\)\/.*$/\1\/\2/' | uniq)
+            for change in $(echo $changes); do
+              str1="$str1\"$change\" "
+              echo "str1 is:$str1"
+            done
+            str1=${str1::-1}
           echo "str1 after circle:$str1"
           echo "::set-output name=lambdas::[$str1]"
         id: find_changes
