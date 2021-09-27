@@ -6,7 +6,6 @@ from constants import HTTPCodes
 from api_controller_client import DebtAPIController, ClientAPIController, OtherAPIController
 from helper_functions import get_or_create_pg_connection
 
-
 DEFAULT_RESPONSE = {"message": "Path is not recognized"}
 
 rds_client = boto3.client('rds')
