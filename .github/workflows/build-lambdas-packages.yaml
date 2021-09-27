@@ -1,11 +1,12 @@
 # This is a basic workflow to help you get started with Actions
 
-name: Build Lambda Packages and upload it to s3
+name: Build Lambda Packages and upload it to s3 (old, will be replaced bu two actions)
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ master , build-packages ]
-
+    branches: [ master , build-packages , lambda_builds ]
+    paths:
+      - 'lambdas/**'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -37,30 +38,63 @@ jobs:
           token: ${{ secrets.IAC_PAT }}
       - name: Find changes
         run: |
-          set -x
-          ls -la
-          git status
-          git log -n 3
-          lambda_changes=$(git diff --name-only HEAD^..HEAD | grep ^lambdas/)
-          if  [ -z $lambda_changes ]; then
-            echo "No changes found"
-            echo "::set-output name=lambdas::[]"
-          else
-            str1=""
-            echo "Changes found, let build lambda package for each of them"
-            echo $lambda_changes | while read changes ;
-              do str1="$str1\"$line\" "
+          str1=""
+          changes=$(git diff --name-only HEAD^..HEAD | grep "lambdas/" || true)
+          if [ -n "$changes" ]; then
+            changes=$(echo $changes | sed 's/\(.*\)\/\(.*\)\/.*$/\1\/\2/' | uniq)
+            for change in $(echo $changes); do
+              str1="$str1\"$change\" "
+              echo "str1 is:$str1"
             done
-            str2="[$str1]"
-            echo "::set-output name=lambdas::$str2"
+            str1=${str1::-1}
           fi
+          echo "str1 after circle:$str1"
+          echo "::set-output name=lambdas::[$str1]"
         id: find_changes
 
   build-package:
     strategy:
       matrix:
-        node: ${{fromJSON(needs.build.outputs.output1)}}
+        lambda_path: ${{fromJSON(needs.check-changes.outputs.output1)}}
     runs-on: ubuntu-latest
     needs: check-changes
     steps:
-      - run: echo ${{needs.build.outputs.output1}}
+      #- run: echo ${{secrets.AWS_ACCESS_KEY_ID_TEST}}
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          submodules: true
+      - name: Checkout Dependencies Repo
+        uses: actions/checkout@v2
+        with:
+          repository: cmc-ai/payment-processor
+          ref: main
+          path: payment-processor
+          token: ${{ secrets.IAC_PAT }}
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies with LambCI
+        uses: docker://lambci/lambda:build-python3.8
+        with:
+            entrypoint: pip
+            args: install -r ${{ matrix.lambda_path }}/requirements.txt --target lambdas/api_borrower/${{ matrix.lambda_path }}
+      - id: get_lambda_name
+        run: |
+          lambda_name=$(echo ${{ matrix.lambda_path }} | sed 's/.*\/\(.*\)$/\1/')
+          echo "::set-output name=lambda_name::$lambda_name"
+          echo "Lambda name is:$lambda_name"
+      - name: Bundle function with dependencies
+        run: |
+            cd ${{ matrix.lambda_path }}
+            zip -r ../${{ steps.get_lambda_name.outputs.lambda_name }}.zip ./*
+
+      - name: Copy function zip file to S3
+        run: |
+            filename=$(md5sum lambdas/${{ steps.get_lambda_name.outputs.lambda_name }}.zip | awk '{print $1}')
+            aws s3 rm s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/*.zip || true
+            aws s3 cp ${{ matrix.lambda_path }}.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/$filename.zip
+
