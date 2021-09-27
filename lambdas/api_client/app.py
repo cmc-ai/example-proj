@@ -11,6 +11,7 @@ DEFAULT_RESPONSE = {"message": "Path is not recognized"}
 rds_client = boto3.client('rds')
 pg_conn = None
 
+
 def build_response(body: dict, code: int = 200):
     return {
         "statusCode": code,
