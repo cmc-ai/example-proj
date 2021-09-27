@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: Build Lambda Packages and upload it to s3
+name: Build Lambda Packages and upload it to s3 (old, will be replaced bu two actions)
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
