@@ -39,8 +39,8 @@ jobs:
       - name: Find changes
         run: |
           str1=""
-          changes=$(git diff --name-only HEAD^..HEAD |  $(grep "lambdas/" || true))
-          if [ $changes != 0 ]; then
+          changes=$(git diff --name-only HEAD^..HEAD | grep "lambdas/" || true)
+          if [ -n "$changes" ]; then
             changes=$(echo $changes | sed 's/\(.*\)\/\(.*\)\/.*$/\1\/\2/' | uniq)
             for change in $(echo $changes); do
               str1="$str1\"$change\" "
@@ -84,8 +84,9 @@ jobs:
             args: install -r ${{ matrix.lambda_path }}/requirements.txt --target lambdas/api_borrower/${{ matrix.lambda_path }}
       - id: get_lambda_name
         run: |
-          lambda_name=$(echo ${ matrix.lambda_path }} | sed 's/.*\/\(.*\)$/\1/')
-          echo "::set-output name=id::lambda_name"
+          lambda_name=$(echo ${{ matrix.lambda_path }} | sed 's/.*\/\(.*\)$/\1/')
+          echo "::set-output name=lambda_name::$lambda_name"
+          echo "Lambda name is:$lambda_name"
       - name: Bundle function with dependencies
         run: |
             cd ${{ matrix.lambda_path }}
@@ -95,5 +96,5 @@ jobs:
         run: |
             filename=$(md5sum lambdas/${{ steps.get_lambda_name.outputs.lambda_name }}.zip | awk '{print $1}')
             aws s3 rm s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/*.zip || true
-            aws s3 cp ${{ matrix.lambda_path }} s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/$filename.zip
+            aws s3 cp ${{ matrix.lambda_path }}.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/$filename.zip
 
