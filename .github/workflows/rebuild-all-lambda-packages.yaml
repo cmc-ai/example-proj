@@ -3,10 +3,6 @@
 name: Rebuild all lambda packages
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
-  push:
-    branches: [ master , build-packages , lambda_builds ]
-    paths:
-      - 'lambdas/**'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -29,17 +25,11 @@ jobs:
         #with:
           #ref: ${{ github.event.pull_request.head.sha }}
           #submodules: true
-      - name: Checkout Dependencies Repo
-        uses: actions/checkout@v2
-        with:
-          repository: cmc-ai/payment-processor
-          ref: main
-          path: payment-processor
-          token: ${{ secrets.IAC_PAT }}
+
       - name: Get all lambdas path list
         run: |
           str1=""
-          changes=$(ls -1d lambdas/*)
+          changes=$(ls -1d lambdas/* |  grep "lambdas/" )
           if [ -n "$changes" ]; then
             changes=$(echo $changes | sed 's/\(.*\)\/\(.*\)\/.*$/\1\/\2/' | uniq)
             for change in $(echo $changes); do
