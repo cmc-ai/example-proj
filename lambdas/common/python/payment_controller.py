@@ -1,6 +1,7 @@
 import os
 import zlib
 from base64 import urlsafe_b64encode, urlsafe_b64decode
+from urllib.parse import unquote
 from datetime import datetime, timedelta
 
 from Crypto.PublicKey import RSA
@@ -39,9 +40,7 @@ def decrypt_payment_link(link_urlsafe_encoded, encryption_key, original_checksum
     """
     returns decoded link, and if provided checksum matches crc32(rsa(hash, encryption_key))
     """
-    print(f"Decrypt payment link_urlsafe_encoded: {link_urlsafe_encoded}")
-    link_bytes = urlsafe_b64decode((link_urlsafe_encoded + '=').encode())
-    print(f"Decrypt payment link_bytes: {link_bytes}")
+    link_bytes = urlsafe_b64decode(unquote(link_urlsafe_encoded).encode())
     link = link_bytes.decode()
 
     pub_key = RSA.importKey(encryption_key, passphrase=None).publickey()
@@ -125,7 +124,7 @@ class DebtPaymentController:
 
         domen = ssm_client.get_parameter(Name=ssm_payment_link_domen_key, WithDecryption=False)['Parameter']['Value']
         encryption_key = \
-            ssm_client.get_parameter(Name=ssm_payment_link_encryption_key, WithDecryption=True)['Parameter']['Value']
+        ssm_client.get_parameter(Name=ssm_payment_link_encryption_key, WithDecryption=True)['Parameter']['Value']
 
         link_encoded, checksum = encrypt_payment_link(f'{self.debt_id}:{amount}:{expiration_utc_ts}', encryption_key)
         link = f"{domen.rstrip('/')}/payment/link/{link_encoded}?crc={checksum}"
