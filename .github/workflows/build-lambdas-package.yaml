@@ -38,8 +38,18 @@ jobs:
             aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
             aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             aws-region: ${{ secrets.AWS_REGION }}
+      - name: Check if requirements.txt exist
+        id: if_requirements_exist
+        run: |
+          if test -f "${{ github.event.inputs.lambda_2build }}/requirements.txt"; then
+            echo "requirements.txt exists"
+            echo "::set-output name=if_requirements_exist::true"
+          else
+            echo "::set-output name=is_requirements_exist::false"
+          fi
       - name: Install dependencies with LambCI
         uses: docker://lambci/lambda:build-python3.8
+        if: steps.if_requirements_exist.outputs.is_requirements_exist == true
         with:
             entrypoint: pip
             args: install -r ${{ github.event.inputs.lambda_2build }}/requirements.txt --target lambdas/api_borrower/${{ github.event.inputs.lambda_2build }}
