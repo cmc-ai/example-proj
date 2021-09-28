@@ -2,10 +2,7 @@
 
 name: Rebuild all lambda packages
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -31,7 +28,7 @@ jobs:
           str1=""
           changes=$(ls -1d lambdas/* |  grep "lambdas/" )
           if [ -n "$changes" ]; then
-            changes=$(echo $changes | sed 's/\(.*\)\/\(.*\)\/.*$/\1\/\2/' | uniq)
+            changes=$(echo $changes | sed 's/\(.*\)\/\(.*\)\/.*/\1\/\2/' | uniq)
             for change in $(echo $changes); do
               str1="$str1\"$change\", "
               echo "str1 is:$str1"
@@ -58,6 +55,3 @@ jobs:
           wait_workflow: true
           workflow_file_name: build-lambdas-package.yaml
           ref: master
-
-
-
