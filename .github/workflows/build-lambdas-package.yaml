@@ -52,7 +52,7 @@ jobs:
         if: steps.if_requirements_exist.outputs.is_requirements_exist == true
         with:
             entrypoint: pip
-            args: install -r ${{ github.event.inputs.lambda_2build }}/requirements.txt --target lambdas/api_borrower/${{ github.event.inputs.lambda_2build }}
+            args: install -r ${{ github.event.inputs.lambda_2build }}/requirements.txt --target {{ github.event.inputs.lambda_2build }}/
       - id: get_lambda_name
         run: |
           lambda_name=$(echo ${{ github.event.inputs.lambda_2build }} | sed 's/.*\/\(.*\)$/\1/')
