@@ -43,16 +43,16 @@ jobs:
         run: |
           if test -f "${{ github.event.inputs.lambda_2build }}/requirements.txt"; then
             echo "requirements.txt exists"
-            echo "::set-output name=if_requirements_exist::true"
+            echo "::set-output name=is_requirements_exist::1"
           else
-            echo "::set-output name=is_requirements_exist::false"
+            echo "::set-output name=is_requirements_exist::0"
           fi
       - name: Install dependencies with LambCI
         uses: docker://lambci/lambda:build-python3.8
-        if: steps.if_requirements_exist.outputs.is_requirements_exist == true
+        if: steps.if_requirements_exist.outputs.is_requirements_exist == 1
         with:
             entrypoint: pip
-            args: install -r ${{ github.event.inputs.lambda_2build }}/requirements.txt --target {{ github.event.inputs.lambda_2build }}/
+            args: install -r ${{ github.event.inputs.lambda_2build }}/requirements.txt --target ${{ github.event.inputs.lambda_2build }}/
       - id: get_lambda_name
         run: |
           lambda_name=$(echo ${{ github.event.inputs.lambda_2build }} | sed 's/.*\/\(.*\)$/\1/')
