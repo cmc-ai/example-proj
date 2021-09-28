@@ -56,6 +56,6 @@ jobs:
       - name: Copy function zip file to S3
         run: |
             filename=$(md5sum lambdas/${{ steps.get_lambda_name.outputs.lambda_name }}.zip | awk '{print $1}')
-            aws s3 rm s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/*.zip || true
+            aws s3 rm --recursive s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/ --include "*.zip" || true
             aws s3 cp ${{ github.event.inputs.lambda_2build }}.zip s3://katabat-chatbot-dev.ca-central-1.630063752049/builds/${{ steps.get_lambda_name.outputs.lambda_name }}/$filename.zip
 
