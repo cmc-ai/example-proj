@@ -39,7 +39,9 @@ def decrypt_payment_link(link_urlsafe_encoded, encryption_key, original_checksum
     """
     returns decoded link, and if provided checksum matches crc32(rsa(hash, encryption_key))
     """
+    print(f"Decrypt payment link_urlsafe_encoded: {link_urlsafe_encoded}")
     link_bytes = urlsafe_b64decode(link_urlsafe_encoded.encode())
+    print(f"Decrypt payment link_bytes: {link_bytes}")
     link = link_bytes.decode()
 
     pub_key = RSA.importKey(encryption_key, passphrase=None).publickey()

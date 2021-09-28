@@ -280,5 +280,3 @@ if __name__ == "__main__":
             "pinpoint_project_id": "34e7ff51c4824c079b9ab87a6a530c2b"
         }
     }, None))
-
-# PYTHONPATH=../common/python DBEndPoint="chatbot-dev-rds-proxy.proxy-cd4lkfqaythe.ca-central-1.rds.amazonaws.com"  DatabaseName="symphony" DBUserName="superuser" DYNAMODB_JOURNEY_PROCESS_STATUS_TABLE="journey-process-status" AWS_REGION="ca-central-1" CLIENTS_S3_BUCKET_NAME="chatbot-dev-clients-data" BASE_PATH="pinpoint_segments" PINPOINT_ROLE_ARN="arn:aws:iam::630063752049:role/PinpointSegmentImport" python3 app.py
