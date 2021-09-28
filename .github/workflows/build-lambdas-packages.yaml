@@ -62,6 +62,13 @@ jobs:
           wait_workflow: true
           workflow_file_name: build-lambdas-package.yaml
           ref: master
+      - name: Trigger IAC CD (Terraform Apply)
+        uses: mvasigh/dispatch-action@main
+        with:
+          token: ${{ secrets.IAC_PAT }}
+          repo: iac
+          owner: cmc-ai
+          event_type: dev_code_deploy
 
 
 
