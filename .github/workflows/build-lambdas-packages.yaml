@@ -54,7 +54,7 @@ jobs:
     needs: check-changes
     steps:
       - uses: convictional/trigger-workflow-and-wait@v1.3.0
-        if: ${{ join(needs.check-changes.outputs.output1) }} == ''
+        if: ${{ join(needs.check-changes.outputs.output1) }} != ''
         with:
           owner: cmc-ai
           repo: example-proj
