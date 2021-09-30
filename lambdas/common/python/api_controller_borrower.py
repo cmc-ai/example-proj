@@ -133,6 +133,14 @@ class PaymentAPIController(APIController):
             cvc = self.body.get('cvc')
             accountType = FundingType.cc.value
 
+            print("==========DEBUG==============")
+            print(f"accountType: {accountType}")
+            print(f"firstName: {firstName}")
+            print(f"lastName: {lastName}")
+            print(f"cardNumber: {cardNumber}")
+            print(f"user_id: {user_id}")
+            print(f"expMonYear: {expMonYear}")
+            print("==========DEBUG==============")
             error_code, error_code_description, data_dict = self._sp_proc.add_funding_account(
                 fundingType=accountType,
                 billFirstName=firstName,
