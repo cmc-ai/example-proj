@@ -32,6 +32,11 @@ class PaymentAPIController(APIController):
         username = ssm_client.get_parameter(Name=username_key, WithDecryption=False)['Parameter']['Value']
         apikey = ssm_client.get_parameter(Name=apikey_key, WithDecryption=True)['Parameter']['Value']
 
+        print("==========DEBUG==============")
+        print(f"acc_sid:{acc_sid}")
+        print(f"username:{username}")
+        print(f"apikey:{apikey}")
+        print("==========DEBUG==============")
         self._sp_proc = SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
 
     def _verify_hash(self):
