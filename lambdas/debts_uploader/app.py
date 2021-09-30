@@ -112,6 +112,7 @@ def lambda_handler(event, context):
             print(e)
 
         finally:
+            print(f"Drop table {temp_table}")
             # In all cases delete temp table if exists
             query = f"DROP TABLE IF EXISTS {temp_table}"
             print(f'QUERY: {query}')
