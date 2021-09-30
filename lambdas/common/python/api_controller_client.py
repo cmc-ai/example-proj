@@ -279,3 +279,4 @@ class ClientAPIController(APIController):
 class OtherAPIController(APIController):
     def get_report(self):
         return {}
+
