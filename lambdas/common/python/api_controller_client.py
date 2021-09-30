@@ -7,7 +7,6 @@ from constants import HTTPCodes
 from dynamo_models import BorrowerMessageModel
 from helper_functions import ts_to_utc_dt
 
-
 S3_PRESIGNED_URL_EXPIRATION_SEC = 3600
 LAST_INDEX = -1  # use these indexes to avoid magic numbers in code
 THE_ONLY_INDEX = 0
@@ -99,7 +98,7 @@ class DebtAPIController(APIController):
 
         url = boto3.client('s3').generate_presigned_url(
             ClientMethod='put_object',
-            Params={'Bucket': s3_bucket, 'Key': upload_file_key},
+            Params={'Bucket': s3_bucket, 'Key': upload_file_key, "ServerSideEncryption": "aws:kms"},
             ExpiresIn=S3_PRESIGNED_URL_EXPIRATION_SEC
         )
         print(f'Presigned URL {S3_PRESIGNED_URL_EXPIRATION_SEC} sec {url}')
