@@ -1,7 +1,6 @@
 import boto3
 from helper_functions import get_or_create_pg_connection
 
-
 rds_client = boto3.client('rds')
 pg_conn = None
 
@@ -88,9 +87,9 @@ def lambda_handler(event, context):
     conn.run(insert_funding_acc_query)
     conn.commit()
 
-    if 'email' in event['request']['userAttributes']:
-        event['response']['autoVerifyEmail'] = True
-
-    if 'phone_number' in event['request']['userAttributes']:
-        event['response']['autoVerifyPhone'] = True
+    # if 'email' in event['request']['userAttributes']:
+    #     event['response']['autoVerifyEmail'] = True
+    #
+    # if 'phone_number' in event['request']['userAttributes']:
+    #     event['response']['autoVerifyPhone'] = True
     return event
