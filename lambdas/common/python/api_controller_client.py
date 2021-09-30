@@ -98,7 +98,7 @@ class DebtAPIController(APIController):
 
         url = boto3.client('s3').generate_presigned_url(
             ClientMethod='put_object',
-            Params={'Bucket': s3_bucket, 'Key': upload_file_key, "ServerSideEncryption": "aws:kms"},
+            Params={'Bucket': s3_bucket, 'Key': upload_file_key},
             ExpiresIn=S3_PRESIGNED_URL_EXPIRATION_SEC
         )
         print(f'Presigned URL {S3_PRESIGNED_URL_EXPIRATION_SEC} sec {url}')
