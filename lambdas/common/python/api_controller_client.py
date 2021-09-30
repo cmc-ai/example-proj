@@ -1,4 +1,5 @@
 import boto3
+from botocore.config import Config
 import os
 from datetime import datetime
 
@@ -111,10 +112,10 @@ class DebtAPIController(APIController):
         s3_bucket = os.getenv('CLIENTS_S3_BUCKET_NAME')
         example_file_key = 'debts-upload-example.csv'
 
-        url = boto3.client('s3').generate_presigned_url(
+        url = boto3.client('s3', config=Config(signature_version='s3v4')).generate_presigned_url(
             ClientMethod='get_object',
             Params={'Bucket': s3_bucket, 'Key': example_file_key},
-            ExpiresIn=S3_PRESIGNED_URL_EXPIRATION_SEC
+            ExpiresIn=S3_PRESIGNED_URL_EXPIRATION_SEC,
         )
         print(f'Presigned URL {S3_PRESIGNED_URL_EXPIRATION_SEC} sec {url}')
         return url
