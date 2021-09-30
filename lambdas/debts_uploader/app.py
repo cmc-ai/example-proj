@@ -111,12 +111,12 @@ def lambda_handler(event, context):
             print(f'Failed to load data from {bucket_key}')
             print(e)
 
-        finally:
-            print(f"Drop table {temp_table}")
-            # In all cases delete temp table if exists
-            query = f"DROP TABLE IF EXISTS {temp_table}"
-            print(f'QUERY: {query}')
-            conn.run(query)
-            conn.commit()
+
+        print(f"Drop table {temp_table}")
+        # In all cases delete temp table if exists
+        query = f"DROP TABLE IF EXISTS {temp_table};"
+        print(f'QUERY: {query}')
+        conn.run(query)
+        conn.commit()
 
     return
