@@ -33,9 +33,9 @@ jobs:
       - name: Find changes
         run: |
           str1=""
-          changes=$(git diff --name-only HEAD^..HEAD | grep "lambdas/" || true)
+          changes=$(git diff --name-only HEAD^..HEAD | grep "lambdas/" | sed 's/\(.*\)\/\(.*\)\/.*/\1\/\2/'|| true)
           if [ -n "$changes" ]; then
-            changes=$(echo $changes | sed 's/\(.*\)\/\(.*\)\/.*$/\1\/\2/' | uniq)
+            changes=$(echo $changes | uniq)
             for change in $(echo $changes); do
               str1="$str1\"$change\", "
               echo "str1 is:$str1"
