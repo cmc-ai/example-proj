@@ -31,12 +31,6 @@ class PaymentAPIController(APIController):
         acc_sid = ssm_client.get_parameter(Name=acc_sid_key, WithDecryption=False)['Parameter']['Value']
         username = ssm_client.get_parameter(Name=username_key, WithDecryption=False)['Parameter']['Value']
         apikey = ssm_client.get_parameter(Name=apikey_key, WithDecryption=True)['Parameter']['Value']
-
-        print("==========DEBUG==============")
-        print(f"acc_sid:{acc_sid}")
-        print(f"username:{username}")
-        print(f"apikey:{apikey}")
-        print("==========DEBUG==============")
         self._sp_proc = SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
 
     def _verify_hash(self):
@@ -138,15 +132,7 @@ class PaymentAPIController(APIController):
             cvc = self.body.get('cvc')
             accountType = FundingType.cc.value
 
-            print("==========DEBUG==============")
-            print(f"accountType: {accountType}")
-            print(f"firstName: {firstName}")
-            print(f"lastName: {lastName}")
-            print(f"cardNumber: {cardNumber}")
-            print(f"user_id: {user_id}")
-            print(f"expMonYear: {expMonYear}")
-            print("==========DEBUG==============")
-            error_code, error_code_description, data_dict = self._sp_proc.add_funding_account(
+            err_code, err_code_description, data_dict = self._sp_proc.add_funding_account(
                 fundingType=accountType,
                 billFirstName=firstName,
                 billLastName=lastName,
@@ -155,7 +141,14 @@ class PaymentAPIController(APIController):
                 cardExpirationDate=expMonYear.replace('/', ''),
                 routingNumber=''
             )
-            print(f'add_funding_account {cardNumber, expMonYear}: {[error_code, error_code_description, data_dict]}')
+            print(f'add_funding_account {cardNumber, expMonYear}: {[err_code, err_code_description, data_dict]}')
+            if err_code != 0:
+                return HTTPCodes.ERROR.value, {
+                    'error_code': err_code,
+                    'error_code_description': err_code_description,
+                    'data_dict': data_dict
+                }
+
             tokenized_id = '' if not data_dict else data_dict.get('data')
             if not tokenized_id:
                 return HTTPCodes.ERROR.value, {'message': f'Failed to create new funding account {cardHolder}'}
@@ -200,7 +193,7 @@ class PaymentAPIController(APIController):
                                                                                amount=debt_amount)
 
         return HTTPCodes.OK.value, {
-            'error_code':err_code,
-            'error_code_description':err_code_description,
+            'error_code': err_code,
+            'error_code_description': err_code_description,
             'data_dict': data_dict
         }
