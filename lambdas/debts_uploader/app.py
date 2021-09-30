@@ -108,9 +108,9 @@ def lambda_handler(event, context):
             conn.commit()
 
         except Exception as e:
+            conn.rollback()
             print(f'Failed to load data from {bucket_key}')
             print(e)
-
 
         print(f"Drop table {temp_table}")
         # In all cases delete temp table if exists
