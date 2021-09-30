@@ -63,7 +63,7 @@ jobs:
           workflow_file_name: build-lambdas-package.yaml
           ref: master
 
-  Trigger IAC deployment:
+  trigger-iac-deployment:
     runs-on: ubuntu-latest
     needs: build-package
     steps:
