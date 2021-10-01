@@ -135,7 +135,7 @@ def lambda_handler(event, context):
             # New implementation
             query = f"""
                 with d as (insert into Debt (
-                clientId, {client_portfolio_id}, originalBalance, outstandingBalance,
+                clientId, clientPortfolioId, originalBalance, outstandingBalance,
                 totalPayment, discount, description, status,
                 createDate, lastUpdateDate, s3SourceFile)
                 select {client_id}, {client_portfolio_id}, originalBalance, outstandingBalance,
