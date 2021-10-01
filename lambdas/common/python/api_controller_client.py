@@ -234,6 +234,46 @@ class ClientAPIController(APIController):
 
         return HTTPCodes.CREATED.value, {}
 
+    def put_portfolio(self):
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
+
+        portfolio_name = self.body.get('portfolioName')
+        if not portfolio_name:
+            return HTTPCodes.ERROR.value, {'message': 'Missing portfolioName'}
+
+        portfolio_id = self.params.get('portfolioId')
+        if not portfolio_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing portfolioId'}
+
+        print(f"Update client portfolio with id {portfolio_id}")
+        query = f"""
+            UPDATE clientportfolio
+            SET portfolioname={portfolio_name}, lastupdatedate=CURRENT_TIMESTAMP
+            WHERE id={portfolio_id};
+        """
+        self._execute_update(query)
+
+        return HTTPCodes.OK.value, {}
+
+    def delete_portfolio(self):
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
+
+        portfolio_id = self.params.get('portfolioId')
+        if not portfolio_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing portfolioId'}
+
+        print(f"Delete client portfolio with id {portfolio_id}")
+        query = f"""
+                    DELETE FROM clientportfolio
+                    WHERE id={portfolio_id};
+                """
+        self._execute_delete(query)
+
+        return HTTPCodes.OK.value, {}
+        pass
+
     def get_collection(self):
         client_id = self._client_id or -1
         query = f"""
@@ -279,4 +319,3 @@ class ClientAPIController(APIController):
 class OtherAPIController(APIController):
     def get_report(self):
         return {}
-

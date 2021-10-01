@@ -54,6 +54,12 @@ class APIController(object):
         self.db_conn.commit()
         return
 
+    def _execute_update(self, query):
+        return self._execute_insert(query)
+
+    def _execute_delete(self, query):
+        return self._execute_insert(query)
+
     def _execute_select(self, query) -> (list, list):
         print(f'Executing {query}')
         cursor = self.db_conn.cursor()

@@ -93,6 +93,10 @@ def lambda_handler(event, context):
             response = controller.get_portfolio()
         if http_method == 'POST':
             code, response = controller.post_portfolio()
+        if http_method == 'PUT':
+            code, response = controller.put_portfolio()
+        if http_method == 'DELETE':
+            code, response = controller.delete_portfolio()
     elif path == '/api/collection':
         controller = ClientAPIController(**c_params)
         if http_method == 'GET':
