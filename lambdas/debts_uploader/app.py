@@ -35,9 +35,10 @@ def lambda_handler(event, context):
                 # New implementation
                 print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
                 return
-        except:
+        except Exception as e:
             # print('Pattern debts/{client_id}/{datetime}.csv  is not recognized')
             # New implementation
+            print(f"Error: {e}")
             print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
             return
 
