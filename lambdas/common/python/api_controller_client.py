@@ -213,9 +213,6 @@ class ClientAPIController(APIController):
 
     def get_portfolio(self):
         client_id = self._client_id or -1
-        print("============DEBUG=============")
-        print(f"client_id: {client_id}")
-        print("============DEBUG=============")
         query = f"SELECT * FROM ClientPortfolio WHERE clientId = {client_id}"
         columns, rows = self._execute_select(query)
         mapped_items = self._map_cols_rows(columns, rows)
