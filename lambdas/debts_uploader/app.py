@@ -28,15 +28,15 @@ def lambda_handler(event, context):
         print(f'Processing portfolio id: {client_portfolio_id}')
 
         try:
-            debts_folder, client_id, file_name = key.split('/')
+            debts_folder, client_id, client_portfolio_id, file_name = key.split('/')
             client_id = int(client_id)
             if debts_folder != 'debts':
-                # print('Pattern debts/{client_id}/{datetime}.csv  is not recognized')
+                # print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
                 # New implementation
                 print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
                 return
         except Exception as e:
-            # print('Pattern debts/{client_id}/{datetime}.csv  is not recognized')
+            # print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
             # New implementation
             print(f"Error: {e}")
             print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
