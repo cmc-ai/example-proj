@@ -24,21 +24,21 @@ def lambda_handler(event, context):
         print(f'Processing {bucket}/{key}')
 
         # New implementation
-        # client_portfolio_id = key.split("/")[-2]
-        # print(f'Processing portfolio id: {client_portfolio_id}')
+        client_portfolio_id = key.split("/")[-2]
+        print(f'Processing portfolio id: {client_portfolio_id}')
 
         try:
             debts_folder, client_id, file_name = key.split('/')
             client_id = int(client_id)
             if debts_folder != 'debts':
-                print('Pattern debts/{client_id}/{datetime}.csv  is not recognized')
+                # print('Pattern debts/{client_id}/{datetime}.csv  is not recognized')
                 # New implementation
-                # print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
+                print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
                 return
         except:
-            print('Pattern debts/{client_id}/{datetime}.csv  is not recognized')
+            # print('Pattern debts/{client_id}/{datetime}.csv  is not recognized')
             # New implementation
-            # print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
+            print('Pattern debts/{client_id}/{client_portfolio_id}/{datetime}.csv  is not recognized')
             return
 
         conn = get_or_create_pg_connection(pg_conn, rds_client)
@@ -46,41 +46,41 @@ def lambda_handler(event, context):
         # create temp table
         temp_table = f'DebtBorrower_{client_id}_{file_name.split(".")[0]}'
         bucket_key = f'{bucket}/{key}'
-        query = f"""
-            CREATE TABLE IF NOT EXISTS {temp_table} (
-            clientPortfolioId   int,
-            originalBalance     DECIMAL(12,2) NOT NULL,
-            outstandingBalance  DECIMAL(12,2) NOT NULL,
-            totalPayment        DECIMAL(12,2),
-            discount            DECIMAL(12,2),
-            description         TEXT,
-
-            firstName   char(50) NOT NULL,
-            lastName    char(50) NOT NULL,
-            phoneNum    char(20),
-            email       char(50),
-            timezone    char(50),
-            country     char(10)
-        )
-        """
+        # query = f"""
+        #     CREATE TABLE IF NOT EXISTS {temp_table} (
+        #     clientPortfolioId   int,
+        #     originalBalance     DECIMAL(12,2) NOT NULL,
+        #     outstandingBalance  DECIMAL(12,2) NOT NULL,
+        #     totalPayment        DECIMAL(12,2),
+        #     discount            DECIMAL(12,2),
+        #     description         TEXT,
+        #
+        #     firstName   char(50) NOT NULL,
+        #     lastName    char(50) NOT NULL,
+        #     phoneNum    char(20),
+        #     email       char(50),
+        #     timezone    char(50),
+        #     country     char(10)
+        # )
+        # """
 
         # New implementation
-        # query = f"""
-        #             CREATE TABLE IF NOT EXISTS {temp_table} (
-        #             originalBalance     DECIMAL(12,2) NOT NULL,
-        #             outstandingBalance  DECIMAL(12,2) NOT NULL,
-        #             totalPayment        DECIMAL(12,2),
-        #             discount            DECIMAL(12,2),
-        #             description         TEXT,
-        #
-        #             firstName   char(50) NOT NULL,
-        #             lastName    char(50) NOT NULL,
-        #             phoneNum    char(20),
-        #             email       char(50),
-        #             timezone    char(50),
-        #             country     char(10)
-        #         )
-        #         """
+        query = f"""
+                    CREATE TABLE IF NOT EXISTS {temp_table} (
+                    originalBalance     DECIMAL(12,2) NOT NULL,
+                    outstandingBalance  DECIMAL(12,2) NOT NULL,
+                    totalPayment        DECIMAL(12,2),
+                    discount            DECIMAL(12,2),
+                    description         TEXT,
+
+                    firstName   char(50) NOT NULL,
+                    lastName    char(50) NOT NULL,
+                    phoneNum    char(20),
+                    email       char(50),
+                    timezone    char(50),
+                    country     char(10)
+                )
+                """
 
         print(f'QUERY: {query}')
         conn.run(query)
@@ -103,41 +103,12 @@ def lambda_handler(event, context):
             conn.commit()
 
             # insert into Debt, Borrower
-            query = f"""
-                with d as (insert into Debt (
-                clientId, clientPortfolioId, originalBalance, outstandingBalance,
-                totalPayment, discount, description, status,
-                createDate, lastUpdateDate, s3SourceFile)
-                select {client_id}, clientPortfolioId, originalBalance, outstandingBalance,
-                        totalPayment, discount, description, '{DBDebtStatus.waiting_journey_assignment.value}',
-                        current_timestamp, current_timestamp, '{bucket_key}'
-                from {temp_table}
-                returning id),
-                b as (insert into Borrower (
-                    debtId, firstName, lastName, isPrimary, channelType, phoneNum, email, timezone, country,
-                    createDate, lastUpdateDate, s3SourceFile)
-                select db_d.id, db_d.firstName, db_d.lastName, True, '{DBBorrowerChannelType.SMS.value}', 
-                db_d.phoneNum, db_d.email, db_d.timezone, db_d.country, 
-                current_timestamp, current_timestamp, '{bucket_key}'
-                from (  select d_rn.id,
-                        db_rn.firstName, db_rn.lastName, db_rn.phoneNum, db_rn.email, db_rn.timezone, db_rn.country
-                        from
-                        (SELECT row_number() OVER (), * FROM {temp_table}) db_rn
-                        join
-                        (SELECT row_number() OVER (), * FROM d) d_rn
-                        using (row_number)
-                    ) db_d
-                )
-                select count(1) from d;
-            """
-
-            # New implementation
             # query = f"""
             #     with d as (insert into Debt (
-            #     clientId, {client_portfolio_id}, originalBalance, outstandingBalance,
+            #     clientId, clientPortfolioId, originalBalance, outstandingBalance,
             #     totalPayment, discount, description, status,
             #     createDate, lastUpdateDate, s3SourceFile)
-            #     select {client_id}, {client_portfolio_id}, originalBalance, outstandingBalance,
+            #     select {client_id}, clientPortfolioId, originalBalance, outstandingBalance,
             #             totalPayment, discount, description, '{DBDebtStatus.waiting_journey_assignment.value}',
             #             current_timestamp, current_timestamp, '{bucket_key}'
             #     from {temp_table}
@@ -159,6 +130,35 @@ def lambda_handler(event, context):
             #     )
             #     select count(1) from d;
             # """
+
+            # New implementation
+            query = f"""
+                with d as (insert into Debt (
+                clientId, {client_portfolio_id}, originalBalance, outstandingBalance,
+                totalPayment, discount, description, status,
+                createDate, lastUpdateDate, s3SourceFile)
+                select {client_id}, {client_portfolio_id}, originalBalance, outstandingBalance,
+                        totalPayment, discount, description, '{DBDebtStatus.waiting_journey_assignment.value}',
+                        current_timestamp, current_timestamp, '{bucket_key}'
+                from {temp_table}
+                returning id),
+                b as (insert into Borrower (
+                    debtId, firstName, lastName, isPrimary, channelType, phoneNum, email, timezone, country,
+                    createDate, lastUpdateDate, s3SourceFile)
+                select db_d.id, db_d.firstName, db_d.lastName, True, '{DBBorrowerChannelType.SMS.value}',
+                db_d.phoneNum, db_d.email, db_d.timezone, db_d.country,
+                current_timestamp, current_timestamp, '{bucket_key}'
+                from (  select d_rn.id,
+                        db_rn.firstName, db_rn.lastName, db_rn.phoneNum, db_rn.email, db_rn.timezone, db_rn.country
+                        from
+                        (SELECT row_number() OVER (), * FROM {temp_table}) db_rn
+                        join
+                        (SELECT row_number() OVER (), * FROM d) d_rn
+                        using (row_number)
+                    ) db_d
+                )
+                select count(1) from d;
+            """
             print(f'QUERY: {query}')
             conn.run(query)
             conn.commit()

@@ -14,7 +14,7 @@ class APIController(object):
         self.body = body or {}
         self.db_conn = db_conn
         self._client_id = None
-        self._client_portfolio_id = params.get('clientPortfolioId', 0)
+        self._client_portfolio_id = params.get('clientPortfolioId', 0) if params else 0
 
         # Client API section
         if client_username:
