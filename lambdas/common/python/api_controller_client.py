@@ -249,7 +249,7 @@ class ClientAPIController(APIController):
         print(f"Update client portfolio with id {portfolio_id}")
         query = f"""
             UPDATE clientportfolio
-            SET portfolioname={portfolio_name}, lastupdatedate=CURRENT_TIMESTAMP
+            SET portfolioname='{portfolio_name}', lastupdatedate=CURRENT_TIMESTAMP
             WHERE id={portfolio_id};
         """
         self._execute_update(query)
