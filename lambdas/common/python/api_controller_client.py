@@ -333,7 +333,7 @@ class OtherAPIController(APIController):
         print(f"newly_added_items: {newly_added_items}")
 
         query = f"""
-                    SELECT COUNT(*) AS num, FROM debt
+                    SELECT COUNT(*) AS num FROM debt
                     WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
                 """
         completes_items = self._map_cols_rows(*self._execute_select(query))
@@ -341,7 +341,7 @@ class OtherAPIController(APIController):
         print(f"completes_items: {completes_items}")
 
         query = f"""
-                    SELECT COUNT(*) AS num, FROM debt
+                    SELECT COUNT(*) AS num FROM debt
                     WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status == 'inactive';
                 """
         inactive_items = self._map_cols_rows(*self._execute_select(query))
@@ -349,8 +349,8 @@ class OtherAPIController(APIController):
         print(f"inactive_items: {inactive_items}")
 
         query = f"""
-                    SELECT SUM(amount) AS amount, FROM debtpayment
-                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status == 'inactive';
+                    SELECT SUM(amount) AS amount FROM debtpayment
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
                 """
         collected_amount = self._map_cols_rows(*self._execute_select(query))
 
