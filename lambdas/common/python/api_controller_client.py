@@ -337,23 +337,23 @@ class OtherAPIController(APIController):
                 """
         completes_items = self._map_cols_rows(*self._execute_select(query))
         print(f"completes_items: {completes_items}")
-        completes_count = completes_items[0] if completes_items else 0
+        completes_count = completes_items[0]['num'] if completes_items else 0
 
         query = f"""
                     SELECT COUNT(*) AS num FROM debt
                     WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status = 'inactive';
                 """
-        inactive_items = self._map_cols_rows(*self._execute_select(query))[0]
+        inactive_items = self._map_cols_rows(*self._execute_select(query))
         print(f"inactive_items: {inactive_items}")
-        inactive_count = inactive_items[0] if inactive_items else 0
+        inactive_count = inactive_items[0]['num'] if inactive_items else 0
 
         query = f"""
                     SELECT SUM(amount) AS amount FROM debtpayment
                     WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
                 """
-        collected_amounts = self._map_cols_rows(*self._execute_select(query))[0]
+        collected_amounts = self._map_cols_rows(*self._execute_select(query))
         print(f"collected_amount: {collected_amounts}")
-        collected_amount = collected_amounts[0] if collected_amounts else 0
+        collected_amount = collected_amounts[0]['amount'] if collected_amounts else 0
 
         # TODO: Add total balance request
         return {
