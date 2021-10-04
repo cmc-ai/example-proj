@@ -357,4 +357,9 @@ class OtherAPIController(APIController):
         print(f"collected_amount: {collected_amount}")
 
         # TODO: Add total balance request
-        return {}
+        return {
+            "newly_added_items": newly_added_items,
+            "completes_items": completes_items,
+            "inactive_items": inactive_items,
+            "collected_amount": collected_amount
+        }
