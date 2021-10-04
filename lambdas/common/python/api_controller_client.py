@@ -1,6 +1,6 @@
 import boto3
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from api_controller_base import APIController
 from constants import HTTPCodes
@@ -318,4 +318,43 @@ class ClientAPIController(APIController):
 
 class OtherAPIController(APIController):
     def get_report(self):
+        start_data = self.params.get('startDate') or datetime.utcnow().replace(
+            day=1, hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M:%S")
+        end_date = self.params.get('endDate') or datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+        print("=========DEBUG MESSAGE==========")
+        query = f"""
+                    SELECT status, COUNT(*) AS num, SUM(originalbalance) as originalbalance FROM debt
+                    WHERE createdate >= '{start_data}' and createdate <= '{end_date}' 
+                    GROUP BY status;
+                """
+        newly_added_items = self._map_cols_rows(*self._execute_select(query))
+
+        print(f"newly_added_items: {newly_added_items}")
+
+        query = f"""
+                    SELECT COUNT(*) AS num, FROM debt
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
+                """
+        completes_items = self._map_cols_rows(*self._execute_select(query))
+
+        print(f"completes_items: {completes_items}")
+
+        query = f"""
+                    SELECT COUNT(*) AS num, FROM debt
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status == 'inactive';
+                """
+        inactive_items = self._map_cols_rows(*self._execute_select(query))
+
+        print(f"inactive_items: {inactive_items}")
+
+        query = f"""
+                    SELECT SUM(amount) AS amount, FROM debtpayment
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status == 'inactive';
+                """
+        collected_amount = self._map_cols_rows(*self._execute_select(query))
+
+        print(f"collected_amount: {collected_amount}")
+
+        # TODO: Add total balance request
         return {}
