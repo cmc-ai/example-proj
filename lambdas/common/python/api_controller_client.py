@@ -342,7 +342,7 @@ class OtherAPIController(APIController):
 
         query = f"""
                     SELECT COUNT(*) AS num FROM debt
-                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status == 'inactive';
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status = 'inactive';
                 """
         inactive_items = self._map_cols_rows(*self._execute_select(query))
 
