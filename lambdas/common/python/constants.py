@@ -76,3 +76,7 @@ class JourneyProcessStatus(Enum):
     success = 'success'
     failed = 'failed'
     in_progress = 'in_progress'
+
+
+class PaymentProccessorPaymentStatus(Enum):
+    OK = 'OK'

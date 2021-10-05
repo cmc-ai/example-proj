@@ -3,7 +3,8 @@ import boto3
 from datetime import datetime
 
 from api_controller_base import APIController
-from constants import HTTPCodes, FundingType
+from constants import HTTPCodes, FundingType, PaymentProccessorPaymentStatus, DBDebtStatus, DBJourneyDebtStatus
+from dynamo_models import DebtRecordModel
 from payment_controller import decrypt_payment_link
 from payment_processor.swervepay import SwervePay
 
@@ -43,6 +44,69 @@ class PaymentAPIController(APIController):
         encryption_key = boto3.client('ssm').get_parameter(Name=ssm_payment_link_encryption_key,
                                                            WithDecryption=True)['Parameter']['Value']
         return decrypt_payment_link(hash, encryption_key, crc)
+
+    def _update_debt_data(self, debt_id, debt_amount, err_code, err_code_description, data_dict, funding_account):
+        fund_acc_summary = funding_account.get('id')
+        fund_acc_type = funding_account.get('accountType')
+        payment_proc = funding_account.get('payment_proc')
+        sp_transaction_id = data_dict.get('data')
+        sp_transaction_reason = data_dict.get('reason')
+
+        # insert into DebtPayment
+        query = f"""
+        INSERT INTO DebtPayment
+        (debtId, paymentDateTimeUTC, amount,
+        paymentStatus, fundingAccSummary, paymentProcessor,
+        vendorTransId, statusReason, accountType,
+        createDate, lastUpdateDate)
+        VALUES 
+        ({debt_id}, CURRENT_TIMESTAMP, {debt_amount}, 
+        '{err_code_description}', cast({fund_acc_summary} as varchar), '{payment_proc}',
+        '{sp_transaction_id}', '{sp_transaction_reason}', '{fund_acc_type}', 
+        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        """
+        self._execute_insert(query)
+
+        # if err_code_description == PaymentProccessorPaymentStatus.OK.value:
+        if err_code == 0:  # payment succeed
+
+            # 1. update Debt
+            query = f"""
+                UPDATE Debt SET
+                status = '{DBDebtStatus.journey_quit.value}',
+                lastUpdateDate = CURRENT_TIMESTAMP
+                WHERE id = {debt_id}
+            """
+            self._execute_update(query)
+
+            # 2. add JourneyDebtStatus 'paid'
+            query = f"""
+                INSERT INTO JourneyDebtStatus(journeyEntryActivityId, journeyDebtStatusDefinitionId, 
+                                                createDate, lastUpdateDate)
+                SELECT jea_id, jdsd_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                FROM (
+                    SELECT jea.id as jea_id, jdsd.id as jdsd_id
+                    FROM JourneyEntryActivity jea, JourneyDebtStatusDefinition jdsd
+                    WHERE jea.debtId = {debt_id} AND jea.exitDateTimeUTC IS NULL
+                    AND jdsd.statusName = '{DBJourneyDebtStatus.paid.value}'
+                    LIMIT 1
+                ) j
+            """
+            self._execute_insert(query)
+
+            # 3. add JourneyEntryActivity.exitDateTimeUTC
+            query = f"""
+                UPDATE JourneyEntryActivity SET
+                exitDateTimeUTC = CURRENT_TIMESTAMP,
+                lastUpdateDate = CURRENT_TIMESTAMP
+                WHERE debtId = {debt_id}
+            """
+            self._execute_update(query)
+
+            # 4.  remove debt record from Dynamo
+            debt_records = [d for d in DebtRecordModel.query(debt_id)]
+            for record in debt_records:
+                record.delete()
 
     def get_payment(self):
         decrypted_link, verified = self._verify_hash()
@@ -191,6 +255,8 @@ class PaymentAPIController(APIController):
         err_code, err_code_description, data_dict = self._sp_proc.make_payment(funding_account.get('accounttype'),
                                                                                funding_account.get('token'),
                                                                                amount=debt_amount)
+
+        self._update_debt_data(debt_id, debt_amount, err_code, err_code_description, data_dict, funding_account)
 
         return HTTPCodes.OK.value, {
             'error_code': err_code,
