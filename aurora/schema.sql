@@ -82,7 +82,6 @@ CREATE TABLE IF NOT EXISTS APICall (
 );
 
 --- Borrowers
-
 CREATE TABLE IF NOT EXISTS Debt (
     id                  SERIAL,
     clientId            int NOT NULL,

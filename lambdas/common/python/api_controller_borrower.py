@@ -140,6 +140,7 @@ class PaymentAPIController(APIController):
 
     def post_payment(self):
         """
+        0. Check if debt hasn't been paid
         1. If new payment method:
             1.a. get or create new user in Swerve Pay
             1.b. add new funding account
@@ -154,11 +155,12 @@ class PaymentAPIController(APIController):
         print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
 
         # check if debt hasn't been paid already
-        query = f""" SELECT status FROM Debt WHERE id = {debt_id} """
+        query = f"""SELECT count(*) FROM DebtPayment WHERE debtid = {debt_id};"""
         cols, rows = self._execute_select(query)
-        debt_status = rows[THE_ONLY_INDEX][THE_ONLY_INDEX]
-        if debt_status == DBJourneyDebtStatus.paid.value:
-            return HTTPCodes.ERROR.value, {'message': f'Debt {debt_id} status is {debt_status}'}
+        debt_payment_cnt = rows[THE_ONLY_INDEX][THE_ONLY_INDEX]
+        print(f'DebtPayment count: {debt_payment_cnt}')
+        if int(debt_payment_cnt) > 0:
+            return HTTPCodes.ERROR.value, {'message': f'Debt {debt_id} status is already paid'}
 
         self._create_sp_proc(debt_id)
 
