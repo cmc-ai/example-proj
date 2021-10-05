@@ -104,7 +104,7 @@ class PaymentAPIController(APIController):
             """
             self._execute_update(query)
 
-            # 4.  remove debt record from Dynamo
+            # 4.  remove debt session from Dynamo
             debt_records = [d for d in DebtRecordModel.query(debt_id)]
             for record in debt_records:
                 record.delete()
@@ -152,6 +152,13 @@ class PaymentAPIController(APIController):
 
         debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
         print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
+
+        # check if debt hasn't been paid already
+        query = f""" SELECT status FROM Debt WHERE id = {debt_id} """
+        cols, rows = self._execute_select(query)
+        debt_status = rows[THE_ONLY_INDEX][THE_ONLY_INDEX]
+        if debt_status == DBJourneyDebtStatus.paid.value:
+            return HTTPCodes.ERROR.value, {'message': f'Debt {debt_id} status is {debt_status}'}
 
         self._create_sp_proc(debt_id)
 
