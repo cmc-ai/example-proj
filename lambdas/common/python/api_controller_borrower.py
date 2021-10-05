@@ -46,6 +46,7 @@ class PaymentAPIController(APIController):
         return decrypt_payment_link(hash, encryption_key, crc)
 
     def _update_debt_data(self, debt_id, debt_amount, err_code, err_code_description, data_dict, funding_account):
+        debt_id = int(debt_id)
         fund_acc_summary = funding_account.get('id')
         fund_acc_type = funding_account.get('accountType')
         payment_proc = funding_account.get('payment_proc')

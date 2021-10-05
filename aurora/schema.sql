@@ -158,41 +158,7 @@ CREATE TABLE IF NOT EXISTS DebtPayment (  -- Debt Activity
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS DebtPaymentLink (   -- TODO Not needed
-    id                  SERIAL,
-    debtId              int NOT NULL,
-    url                 char(100),
-    expirationDateTimeUTC  timestamp,
-
-    createDate          timestamp,
-    lastUpdateDate      timestamp,
-
-    PRIMARY KEY (id)
-);
-
 -- Journey & ChatBot
-
-CREATE TABLE IF NOT EXISTS Journey ( -- TODO Not needed
-    id          SERIAL,
-    awsId       CHAR(50),
-    clientId    int,
-
-    createDate      timestamp,
-    lastUpdateDate  timestamp,
-
-    PRIMARY KEY (id)
-);
-
-CREATE TABLE IF NOT EXISTS Chatbot (  -- TODO Not needed
-    id              SERIAL,
-    awsId           CHAR(50),
-    clientId        int,
-
-    createDate      timestamp,
-    lastUpdateDate  timestamp,
-
-    PRIMARY KEY (id)
-);
 
 CREATE TABLE IF NOT EXISTS JourneyEntryActivity (
     id          SERIAL,
