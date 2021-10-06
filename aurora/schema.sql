@@ -37,9 +37,15 @@ CREATE TABLE IF NOT EXISTS ClientFundingAccount (
     id              SERIAL,
     clientId        int NOT NULL,
     accountType     char(20),
-    summary         char(50),
-    paymentProcessor    char(200),
-    token           char(200),
+
+    cardNumber      int NOT NULL, -- last 4 digits
+    cardHolder      char(50) NOT NULL,
+
+    summary                     char(50),
+    paymentProcessor            char(200),
+    paymentProcessorUserId      char(200),
+    token                       char(200),
+
     createDate      timestamp,
     lastUpdateDate  timestamp,
 
@@ -124,7 +130,7 @@ CREATE TABLE IF NOT EXISTS BorrowerFundingAccount (
     id              SERIAL,
     borrowerId      int NOT NULL,
     accountType     char(20) NOT NULL,
-    cardNumber      int NOT NULL, -- TODO: last 4 digits
+    cardNumber      int NOT NULL, -- last 4 digits
     cardHolder      char(50) NOT NULL,
     summary         char(50),
     clientIdExternal            char(50),

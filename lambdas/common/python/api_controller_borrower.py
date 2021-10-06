@@ -160,7 +160,7 @@ class PaymentAPIController(APIController):
         debt_payment_cnt = rows[THE_ONLY_INDEX][THE_ONLY_INDEX]
         print(f'DebtPayment count: {debt_payment_cnt}')
         if int(debt_payment_cnt) > 0:
-            return HTTPCodes.ERROR.value, {'message': f'Debt {debt_id} status is already paid'}
+            return HTTPCodes.ERROR.value, {'message': f'Debt {debt_id} is already paid'}
 
         self._create_sp_proc(debt_id)
 

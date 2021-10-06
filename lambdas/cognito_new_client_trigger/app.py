@@ -4,6 +4,8 @@ from helper_functions import get_or_create_pg_connection
 rds_client = boto3.client('rds')
 pg_conn = None
 
+# TODO:
+# save Swerve creds into paramstore in the post-sign-up Lambda
 
 def lambda_handler(event, context):
     print(event)
