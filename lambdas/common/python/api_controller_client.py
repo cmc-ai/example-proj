@@ -351,16 +351,24 @@ class OtherAPIController(APIController):
 
         query = f"""
                     SELECT SUM(amount) AS amount FROM debtpayment
-                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
+                    WHERE paymentDateTimeUTC >= '{start_data}' and paymentDateTimeUTC <= '{end_date}';
                 """
         collected_amounts = self._map_cols_rows(*self._execute_select(query))
         print(f"collected_amounts: {collected_amounts}")
         collected_amount = collected_amounts[0]['amount'] or 0 if collected_amounts else 0
 
-        # TODO: Add total balance request
+        query = f"""
+                            SELECT SUM(outstandingBalance) AS amount FROM debt
+                            WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
+                        """
+        original_balances = self._map_cols_rows(*self._execute_select(query))
+        print(f"original_balances: {original_balances}")
+        original_balance = original_balances[0]['amount'] or 0 if original_balances else 0
+
         return {
             "newly_added_items": newly_added_items,
             "completes_count": completes_count,
             "inactive_count": inactive_count,
-            "collected_amount": collected_amount
+            "collected_amount": collected_amount,
+            "original_balance": original_balance,
         }
