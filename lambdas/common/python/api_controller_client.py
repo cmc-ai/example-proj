@@ -194,13 +194,14 @@ class ClientAPIController(APIController):
         if not self._client_id:
             return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
 
-        print(f"---- DEBUG ---- \n {self.body.get('ClientId', '!!!!!!!!!!!!!')}")
+        cognito_client_app_id = os.getenv('COGNITO_CLIENT_APP_ID')
+
         cognito_client = boto3.client('cognito-idp')
         cognito_response = cognito_client.initiate_auth(
             AuthFlow='REFRESH_TOKEN_AUTH',
             AuthParameters=self.body.get('AuthParameters', {}),
             ClientMetadata=self.body.get('ClientMetadata', {}),
-            ClientId=self.body.get('ClientId'),
+            ClientId=cognito_client_app_id,
             AnalyticsMetadata=self.body.get('AnalyticsMetadata', {}),
             UserContextData=self.body.get('UserContextData', {})
         )
