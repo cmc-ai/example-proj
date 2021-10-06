@@ -207,7 +207,7 @@ class ClientAPIController(APIController):
         )
 
         if cognito_response and cognito_response.get('AuthenticationResult', {}).get('AccessToken'):
-            new_token = cognito_response.get('AuthenticationResult', {}).get('AccessToken')
+            new_token = cognito_response.get('AuthenticationResult', {}).get('IdToken')
             query = f"UPDATE Client SET token = '{new_token}' WHERE id = {self._client_id}"
             self._execute_insert(query)
 

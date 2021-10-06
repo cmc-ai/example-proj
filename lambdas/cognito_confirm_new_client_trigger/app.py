@@ -1,9 +1,10 @@
-
 from payment_processor.swervepay import SwervePay
+from constants import FundingType
 
 
 def create_swerve_proc(acc_sid, username, apikey):
     return SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
+
 
 def lambda_handler(event, context):
     print(event)
@@ -29,20 +30,50 @@ def lambda_handler(event, context):
     user_attrs = event['request']['userAttributes']
 
     # create new payment account
-    print(f'Creating funding account')
     cardHolder = user_attrs.get('name')
     firstName = cardHolder.split()[0]
     lastName = '' if len(cardHolder.split()) < 2 else cardHolder.split()[1]
     swerve_acc_sid = user_attrs.get('custom:swerve_account_sid')
     swerve_username = user_attrs.get('custom:swerve_username')
     swerve_apikey = user_attrs.get('custom:swerve_apikey')
+    cardNumber = user_attrs.get('custom:funding_account')
+    expMonYear = user_attrs.get('custom:exp')
+    cvc = user_attrs.get('custom:cvc')
+    accountType = FundingType.cc.value
 
+    print(f'Getting SP processor')
     sp_proc = create_swerve_proc(swerve_acc_sid, swerve_username, swerve_apikey)
+    if not sp_proc:
+        event['response']['errMsg'] = f'Failed to connect to SP with provided swerve_acc_sid {swerve_acc_sid}, swerve_username {swerve_username}, swerve_apikey {swerve_apikey}'
+        return event
+
+    print(f'Creating SP user')
     error_code, error_code_description, data_dict = sp_proc.create_user(firstName, lastName)
     print(f'create_user {firstName},{lastName}: {[error_code, error_code_description, data_dict]}')
     user_id = '' if not data_dict else data_dict.get('data', {})
     if not user_id:
-        return  # TODO
+        event['response']['errMsg'] = f'Failed to create user with provided firstName {firstName}, lastName {lastName}'
+        return event
+
+    print(f'Adding funding account')
+    err_code, err_code_description, data_dict = sp_proc.add_funding_account(
+        fundingType=accountType,
+        billFirstName=firstName,
+        billLastName=lastName,
+        accountNumber=cardNumber,
+        userid=user_id,
+        cardExpirationDate=expMonYear.replace('/', ''),
+        routingNumber=''
+    )
+    if err_code != 0:
+        event['response']['errMsg'] = f'Failed to add funding account with provided firstName {firstName}, lastName {lastName}, cardNumber {cardNumber}, expMonYear {expMonYear}'
+        return event
+
+    tokenized_id = data_dict.get('data')
+
+    # build response
+    event['response']['userAttributes'] = user_attrs.copy()
+    event['response']['userAttributes']['tokenized_id'] = tokenized_id
 
     # other
     event['response']['autoConfirmUser'] = 'True'
