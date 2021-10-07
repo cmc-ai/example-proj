@@ -324,7 +324,6 @@ class OtherAPIController(APIController):
             day=1, hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M:%S")
         end_date = self.params.get('endDate') or datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-        print("=========DEBUG MESSAGE==========")
         query = f"""
                     SELECT status, COUNT(*) AS num, SUM(originalbalance) as originalbalance FROM debt
                     WHERE createdate >= '{start_data}' and createdate <= '{end_date}' 
@@ -339,7 +338,7 @@ class OtherAPIController(APIController):
                 """
         completes_items = self._map_cols_rows(*self._execute_select(query))
         print(f"completes_items: {completes_items}")
-        completes_count = completes_items[0]['num']  or 0 if completes_items else 0
+        completes_count = completes_items[0]['num'] or 0 if completes_items else 0
 
         query = f"""
                     SELECT COUNT(*) AS num FROM debt
@@ -347,7 +346,7 @@ class OtherAPIController(APIController):
                 """
         inactive_items = self._map_cols_rows(*self._execute_select(query))
         print(f"inactive_items: {inactive_items}")
-        inactive_count = inactive_items[0]['num']  or 0 if inactive_items else 0
+        inactive_count = inactive_items[0]['num'] or 0 if inactive_items else 0
 
         query = f"""
                     SELECT SUM(amount) AS amount FROM debtpayment
@@ -358,9 +357,9 @@ class OtherAPIController(APIController):
         collected_amount = collected_amounts[0]['amount'] or 0 if collected_amounts else 0
 
         query = f"""
-                            SELECT SUM(outstandingBalance) AS amount FROM debt
-                            WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
-                        """
+                    SELECT SUM(outstandingBalance) AS amount FROM debt
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
+                """
         original_balances = self._map_cols_rows(*self._execute_select(query))
         print(f"original_balances: {original_balances}")
         original_balance = original_balances[0]['amount'] or 0 if original_balances else 0

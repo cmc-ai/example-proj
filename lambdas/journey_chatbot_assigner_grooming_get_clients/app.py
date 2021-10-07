@@ -34,7 +34,7 @@ def lambda_handler(event, context):
         if rows:
             return {
                 'statusCode': 200,
-                'items': [{'client_id': i[0], 'pinpoint_project_id': params['pinpoint_project_id']} for i in rows],
+                'items': [{'client_id': i[0]} for i in rows],
                 'timestamp': int(time.time())
             }
 
