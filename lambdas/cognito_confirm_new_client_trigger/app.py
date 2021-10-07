@@ -67,7 +67,7 @@ def lambda_handler(event, context):
         fundingType=accountType,
         billFirstName=firstName,
         billLastName=lastName,
-        accountNumber=cardNumber,
+        accountNumber=cardNumber.replace(' ',''),
         userid=user_id,
         cardExpirationDate=expMonYear.replace('/', ''),
         routingNumber=''
