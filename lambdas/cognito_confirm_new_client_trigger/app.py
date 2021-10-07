@@ -73,7 +73,8 @@ def lambda_handler(event, context):
         routingNumber=''
     )
     if err_code != 0:
-        raise Exception(f'Failed to add funding account {firstName, lastName, cardNumber, expMonYear, accountType}: {err_code, err_code_description, data_dict}')
+        # raise Exception(f'Failed to add funding account {firstName, lastName, cardNumber, expMonYear, accountType}: {err_code, err_code_description, data_dict}')
+        raise Exception(f'Failed to add funding account: {data_dict.get("reason")}')
         # return event
 
     tokenized_id = data_dict.get('data')

@@ -48,6 +48,8 @@ def lambda_handler(event, context):
     cardNumber = udata.get('custom:funding_account')
     cardNumber_last_4_digits = int(str(cardNumber)[-4:])
 
+    # TODO: SP stuff
+
     global pg_conn
     global rds_client
     conn = get_or_create_pg_connection(pg_conn, rds_client)
