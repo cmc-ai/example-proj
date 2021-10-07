@@ -43,6 +43,10 @@ def lambda_handler(event, context):
 
     # SwervePay Validation
 
+    if not firstName and lastName:
+        delete_cognito_user(user_pool_id, user_name)
+        raise Exception(f'Missed first name or last name: {cardHolder}')
+
     print(f'Getting SP processor')
     sp_proc = create_swerve_proc(swerve_acc_sid, swerve_username, swerve_apikey)
     if not sp_proc:
@@ -119,7 +123,7 @@ def lambda_handler(event, context):
             createDate, lastUpdateDate)
         VALUES
             ({client_id}, '{udata.get('custom:payment')}',
-            {cardNumber_last_4_digits}, {cardHolder}, {tokenized_id},
+            {cardNumber_last_4_digits}, '{cardHolder}', '{tokenized_id}',
             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     """
     conn.run(insert_funding_acc_query)
