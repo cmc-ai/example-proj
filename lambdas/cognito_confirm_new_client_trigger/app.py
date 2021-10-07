@@ -51,7 +51,6 @@ def lambda_handler(event, context):
     print(f'Getting SP processor')
     sp_proc = create_swerve_proc(swerve_acc_sid, swerve_username, swerve_apikey)
     if not sp_proc:
-        #event['response']['errMsg'] = f'Failed to connect to SP with provided swerve_acc_sid {swerve_acc_sid}, swerve_username {swerve_username}, swerve_apikey {swerve_apikey}'
         return event
 
     print(f'Creating SP user')
@@ -59,7 +58,6 @@ def lambda_handler(event, context):
     print(f'create_user {firstName},{lastName}: {[error_code, error_code_description, data_dict]}')
     user_id = '' if not data_dict else data_dict.get('data', {})
     if not user_id:
-        #event['response']['errMsg'] = f'Failed to create user with provided firstName {firstName}, lastName {lastName}'
         return event
 
     print(f'Adding funding account')
@@ -73,7 +71,6 @@ def lambda_handler(event, context):
         routingNumber=''
     )
     if err_code != 0:
-        #event['response']['errMsg'] = f'Failed to add funding account with provided firstName {firstName}, lastName {lastName}, cardNumber {cardNumber}, expMonYear {expMonYear}'
         return event
 
     tokenized_id = data_dict.get('data')
