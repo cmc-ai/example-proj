@@ -59,7 +59,7 @@ def lambda_handler(event, context):
     print(f'create_user {firstName},{lastName}: {[error_code, error_code_description, data_dict]}')
     user_id = '' if not data_dict else data_dict.get('data', {})
     if not user_id:
-        raise Exception(f'Failed to create SP user {firstName, lastName}')
+        raise Exception(f'Failed to create SP user {firstName, lastName}, reason: {data_dict.get("reason")}')
         # return event
 
     print(f'Adding funding account')
