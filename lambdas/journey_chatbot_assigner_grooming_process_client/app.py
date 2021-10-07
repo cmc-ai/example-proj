@@ -251,7 +251,7 @@ def lambda_handler(event, context):
         if s3_path:
             try:
                 pinpoint_create_import_job(s3_path=s3_path, client_id=client_id,
-                                           pinpoint_project_id=os.getenv("PINPOINT_PROJECT_ID"))
+                                           pinpoint_project_id=os.getenv("AWS_PINPOINT_PROJECT_ID"))
             except Exception as e:
                 handle_fail(journey_process_statuses=journey_process_statuses)
                 raise e
@@ -264,7 +264,7 @@ def lambda_handler(event, context):
             set_journey_process_status(status=JourneyProcessStatus.success.value,
                                        journey_process_status=journey_process_statuses[portfolio_id])
 
-    get_pinpoint_segments(pinpoint_project_id=os.getenv("PINPOINT_PROJECT_ID"))
+    get_pinpoint_segments(pinpoint_project_id=os.getenv("AWS_PINPOINT_PROJECT_ID"))
 
     return {
         'statusCode': 200,
