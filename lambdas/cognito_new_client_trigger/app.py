@@ -115,7 +115,7 @@ def lambda_handler(event, context):
     insert_funding_acc_query = f"""
         INSERT INTO ClientFundingAccount
             (clientId, paymentProcessor, 
-            cardNumber, cardHolder, paymentProcessorUserId
+            cardNumber, cardHolder, paymentProcessorUserId, 
             createDate, lastUpdateDate)
         VALUES
             ({client_id}, '{udata.get('custom:payment')}',
