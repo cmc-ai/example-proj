@@ -202,22 +202,33 @@ class ClientAPIController(APIController):
         if not self._client_id:
             return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
 
-        cognito_client_app_id = os.getenv('COGNITO_CLIENT_APP_ID')
+        cognito_response = {}
 
         cognito_client = boto3.client('cognito-idp')
-        cognito_response = cognito_client.initiate_auth(
-            AuthFlow='REFRESH_TOKEN_AUTH',
-            AuthParameters=self.body.get('AuthParameters', {}),
-            ClientMetadata=self.body.get('ClientMetadata', {}),
-            ClientId=cognito_client_app_id,
-            AnalyticsMetadata=self.body.get('AnalyticsMetadata', {}),
-            UserContextData=self.body.get('UserContextData', {})
-        )
+        cognito_client_app_id = os.getenv('COGNITO_CLIENT_APP_ID')
 
-        if cognito_response and cognito_response.get('AuthenticationResult', {}).get('AccessToken'):
-            new_token = cognito_response.get('AuthenticationResult', {}).get('IdToken')
-            query = f"UPDATE Client SET token = '{new_token}' WHERE id = {self._client_id}"
-            self._execute_insert(query)
+        # cognito_response = cognito_client.initiate_auth(
+        #     AuthFlow='REFRESH_TOKEN_AUTH',
+        #     AuthParameters=self.body.get('AuthParameters', {}),
+        #     ClientMetadata=self.body.get('ClientMetadata', {}),
+        #     ClientId=cognito_client_app_id,
+        #     AnalyticsMetadata=self.body.get('AnalyticsMetadata', {}),
+        #     UserContextData=self.body.get('UserContextData', {})
+        # )
+        # if cognito_response and cognito_response.get('AuthenticationResult', {}).get('AccessToken'):
+        #     new_token = cognito_response.get('AuthenticationResult', {}).get('IdToken')
+        #     query = f"UPDATE Client SET token = '{new_token}' WHERE id = {self._client_id}"
+        #     self._execute_insert(query)
+
+        # 1. revoke
+        cognito_client.revoke_token(
+            Token=self.body.get('RefreshToken'),
+            ClientId=cognito_client_app_id
+        )
+        # 2. sign out
+        cognito_client.global_sign_out(
+            AccessToken=self.body.get('AccessToken')
+        )
 
         return cognito_response
 
