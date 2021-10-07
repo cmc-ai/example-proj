@@ -1,6 +1,8 @@
+import boto3
 from payment_processor.swervepay import SwervePay
 from constants import FundingType
 
+cognito_client = boto3.client('cognito-idp')
 
 def create_swerve_proc(acc_sid, username, apikey):
     return SwervePay(accountSid=acc_sid, username=username, apikey=apikey)
@@ -23,11 +25,16 @@ def lambda_handler(event, context):
                                     'phone_number': '+12342345756', 
                                     'custom:cvc': '000', 
                                     'custom:payment': 'swerepay', 
-                                    'email': 'delete@it.pls'}, 
+                                    'email': 'delete@it.pls',
+                                    'custom:swerve_account_sid': '',
+                                    'custom:swerve_username': '',
+                                    'custom:swerve_apikey': ''
+                                    }, 
                 'validationData': None}, 
     'response': {'autoConfirmUser': False, 'autoVerifyEmail': False, 'autoVerifyPhone': False}}
     """
     user_attrs = event['request']['userAttributes']
+    event['response']['autoConfirmUser'] = False
 
     # create new payment account
     cardHolder = user_attrs.get('name')
@@ -44,7 +51,7 @@ def lambda_handler(event, context):
     print(f'Getting SP processor')
     sp_proc = create_swerve_proc(swerve_acc_sid, swerve_username, swerve_apikey)
     if not sp_proc:
-        event['response']['errMsg'] = f'Failed to connect to SP with provided swerve_acc_sid {swerve_acc_sid}, swerve_username {swerve_username}, swerve_apikey {swerve_apikey}'
+        #event['response']['errMsg'] = f'Failed to connect to SP with provided swerve_acc_sid {swerve_acc_sid}, swerve_username {swerve_username}, swerve_apikey {swerve_apikey}'
         return event
 
     print(f'Creating SP user')
@@ -52,7 +59,7 @@ def lambda_handler(event, context):
     print(f'create_user {firstName},{lastName}: {[error_code, error_code_description, data_dict]}')
     user_id = '' if not data_dict else data_dict.get('data', {})
     if not user_id:
-        event['response']['errMsg'] = f'Failed to create user with provided firstName {firstName}, lastName {lastName}'
+        #event['response']['errMsg'] = f'Failed to create user with provided firstName {firstName}, lastName {lastName}'
         return event
 
     print(f'Adding funding account')
@@ -66,16 +73,25 @@ def lambda_handler(event, context):
         routingNumber=''
     )
     if err_code != 0:
-        event['response']['errMsg'] = f'Failed to add funding account with provided firstName {firstName}, lastName {lastName}, cardNumber {cardNumber}, expMonYear {expMonYear}'
+        #event['response']['errMsg'] = f'Failed to add funding account with provided firstName {firstName}, lastName {lastName}, cardNumber {cardNumber}, expMonYear {expMonYear}'
         return event
 
     tokenized_id = data_dict.get('data')
 
-    # build response
-    event['response']['userAttributes'] = user_attrs.copy()
-    event['response']['userAttributes']['tokenized_id'] = tokenized_id
+    # set custom:swerve_tokenized_id
+    cognito_client.admin_update_user_attributes(
+        UserPoolId=event.get('userPoolId'),
+        Username=event.get('userName'),
+        UserAttributes=[
+            {
+                'Name': 'custom:swerve_tokenized_id',
+                'Value': str(tokenized_id)
+            },
+        ]
+    )
 
     # other
+
     event['response']['autoConfirmUser'] = 'True'
 
     if 'email' in event['request']['userAttributes']:
