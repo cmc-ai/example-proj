@@ -15,14 +15,15 @@ THE_ONLY_INDEX = 0
 class DebtAPIController(APIController):
 
     def get_debt(self):
-        print("======= DEBUG MESSAGE =========")
-        print(self.params)
-
         if self._client_id:
             self.params['d.clientId'] = self._client_id
 
         if "clientPortfolioId" in self.params:
-            print(self.params["clientPortfolioId"])
+            self.params["d.clientportfolioid"] = int(self.params["clientPortfolioId"])
+            del self.params["clientPortfolioId"]
+
+        print("======= DEBUG MESSAGE =========")
+        print(self.params)
 
         query = f"""
             SELECT db.*, 
