@@ -18,12 +18,12 @@ class DebtAPIController(APIController):
         if self._client_id:
             self.params['d.clientId'] = self._client_id
 
+        print(f"Received params: {self.params}")
         if "clientPortfolioId" in self.params:
             self.params["d.clientportfolioid"] = int(self.params["clientPortfolioId"])
             del self.params["clientPortfolioId"]
 
-        print("======= DEBUG MESSAGE =========")
-        print(self.params)
+        print(f"Updated params: {self.params}")
 
         query = f"""
             SELECT db.*, 
