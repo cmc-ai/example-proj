@@ -15,8 +15,15 @@ THE_ONLY_INDEX = 0
 class DebtAPIController(APIController):
 
     def get_debt(self):
+        print("======= DEBUG MESSAGE =========")
+        print(self.params)
+
         if self._client_id:
             self.params['d.clientId'] = self._client_id
+
+        if "clientPortfolioId" in self.params:
+            print(self.params["clientPortfolioId"])
+
         query = f"""
             SELECT db.*, 
             cp.portfolioName as d_clientPortfolioName,
