@@ -103,6 +103,10 @@ def lambda_handler(event, context):
             response = controller.get_collection()
         if http_method == 'POST':
             response = controller.post_collection()
+        if http_method == 'PUT':
+            response = controller.put_collection()
+        if http_method == 'DELETE':
+            response = controller.delete_collection()
 
     # Other
     elif path == '/api/report':

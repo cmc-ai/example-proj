@@ -336,6 +336,52 @@ class ClientAPIController(APIController):
 
         return HTTPCodes.CREATED.value, {}
 
+    def put_collection(self):
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
+
+        portfolio_name = self.body.get('portfolioName')
+        if not portfolio_name:
+            return HTTPCodes.ERROR.value, {'message': 'Missing portfolioName'}
+
+        collection_id = self.params.get('collectionId')
+        if not collection_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing collectionId'}
+
+        print("Get collection fields")
+        client_portfolio_id = self.body.get('clientPortfolioId')
+        link_exp_minutes = self.body.get('linkExpMinutes')
+        gap_btw_journeys_days = self.body.get('gapBetweenJourneysDays')
+
+        print(f"Update client collection with id {collection_id}")
+        query = f"""
+            UPDATE ClientConfiguration
+            SET clientPortfolioId='{client_portfolio_id}, linkExpMinutes='{link_exp_minutes}, 
+            gapBetweenJourneysDays='{gap_btw_journeys_days}, lastupdatedate=CURRENT_TIMESTAMP 
+            WHERE id={collection_id};
+        """
+        self._execute_update(query)
+
+        return HTTPCodes.OK.value, {}
+
+    def delete_collection(self):
+        if not self._client_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
+
+        collection_id = self.params.get('collectionId')
+        if not collection_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing collectionId'}
+
+        print(f"Delete client configuration with id {collection_id}")
+        query = f"""
+                    DELETE FROM ClientConfiguration
+                    WHERE id={collection_id};
+                """
+        self._execute_delete(query)
+
+        return HTTPCodes.OK.value, {}
+        pass
+
 
 class OtherAPIController(APIController):
     def get_report(self):
