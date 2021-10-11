@@ -312,6 +312,7 @@ class ClientAPIController(APIController):
         client_portfolio_id = self.body.get('clientPortfolioId')
         link_exp_minutes = self.body.get('linkExpMinutes')
         gap_btw_journeys_days = self.body.get('gapBetweenJourneysDays')
+        update_segment_interval = self.body.get('updateSegmentInterval')
         if not client_portfolio_id or not link_exp_minutes or not gap_btw_journeys_days:
             return HTTPCodes.ERROR.value, {
                 'message': 'Missing clientPortfolioId, linkExpMinutes, or gapBetweenJourneysDays'}
@@ -328,9 +329,10 @@ class ClientAPIController(APIController):
 
         query = f"""
             INSERT INTO ClientConfiguration 
-            (clientPortfolioId, linkExpMinutes, gapBetweenJourneysDays, createDate, lastUpdateDate )
+            (clientPortfolioId, linkExpMinutes, gapBetweenJourneysDays, createDate, lastUpdateDate, updatesegmentinterval )
             VALUES 
-            ({client_portfolio_id}, {link_exp_minutes}, {gap_btw_journeys_days}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+            ({client_portfolio_id}, {link_exp_minutes}, {gap_btw_journeys_days}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 
+            {update_segment_interval});
             """
         self._execute_insert(query)
 
@@ -340,10 +342,6 @@ class ClientAPIController(APIController):
         if not self._client_id:
             return HTTPCodes.ERROR.value, {'message': 'Missing ClientId'}
 
-        portfolio_name = self.body.get('portfolioName')
-        if not portfolio_name:
-            return HTTPCodes.ERROR.value, {'message': 'Missing portfolioName'}
-
         collection_id = self.params.get('collectionId')
         if not collection_id:
             return HTTPCodes.ERROR.value, {'message': 'Missing collectionId'}
@@ -352,12 +350,14 @@ class ClientAPIController(APIController):
         client_portfolio_id = self.body.get('clientPortfolioId')
         link_exp_minutes = self.body.get('linkExpMinutes')
         gap_btw_journeys_days = self.body.get('gapBetweenJourneysDays')
+        update_segment_interval = self.body.get('updateSegmentInterval')
 
         print(f"Update client collection with id {collection_id}")
         query = f"""
             UPDATE ClientConfiguration
-            SET clientPortfolioId='{client_portfolio_id}, linkExpMinutes='{link_exp_minutes}, 
-            gapBetweenJourneysDays='{gap_btw_journeys_days}, lastupdatedate=CURRENT_TIMESTAMP 
+            SET clientPortfolioId={client_portfolio_id}, linkExpMinutes={link_exp_minutes}, 
+            gapBetweenJourneysDays={gap_btw_journeys_days}, lastupdatedate=CURRENT_TIMESTAMP,
+            updatesegmentinterval={update_segment_interval}
             WHERE id={collection_id};
         """
         self._execute_update(query)
