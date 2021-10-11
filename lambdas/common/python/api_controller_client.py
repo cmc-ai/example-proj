@@ -310,9 +310,21 @@ class ClientAPIController(APIController):
             return HTTPCodes.ERROR.value, {'message': 'No ClientId provided'}
 
         client_portfolio_id = self.body.get('clientPortfolioId')
+        if not client_portfolio_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing client portfolio ID'}
+
         link_exp_minutes = self.body.get('linkExpMinutes')
+        if not link_exp_minutes:
+            return HTTPCodes.ERROR.value, {'message': 'Missing link expiration minutes'}
+
         gap_btw_journeys_days = self.body.get('gapBetweenJourneysDays')
+        if not link_exp_minutes:
+            return HTTPCodes.ERROR.value, {'message': 'Missing gap between journey days'}
+
         update_segment_interval = self.body.get('updateSegmentInterval')
+        if not update_segment_interval:
+            return HTTPCodes.ERROR.value, {'message': 'Missing update segment interval'}
+
         if not client_portfolio_id or not link_exp_minutes or not gap_btw_journeys_days:
             return HTTPCodes.ERROR.value, {
                 'message': 'Missing clientPortfolioId, linkExpMinutes, or gapBetweenJourneysDays'}
@@ -348,9 +360,20 @@ class ClientAPIController(APIController):
 
         print("Get collection fields")
         client_portfolio_id = self.body.get('clientPortfolioId')
+        if not client_portfolio_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing client portfolio ID'}
+
         link_exp_minutes = self.body.get('linkExpMinutes')
+        if not link_exp_minutes:
+            return HTTPCodes.ERROR.value, {'message': 'Missing link expiration minutes'}
+
         gap_btw_journeys_days = self.body.get('gapBetweenJourneysDays')
+        if not link_exp_minutes:
+            return HTTPCodes.ERROR.value, {'message': 'Missing gap between journey days'}
+
         update_segment_interval = self.body.get('updateSegmentInterval')
+        if not update_segment_interval:
+            return HTTPCodes.ERROR.value, {'message': 'Missing update segment interval'}
 
         print(f"Update client collection with id {collection_id}")
         query = f"""
@@ -360,6 +383,7 @@ class ClientAPIController(APIController):
             updatesegmentinterval={update_segment_interval}
             WHERE id={collection_id};
         """
+        print(f"Update query: {query}")
         self._execute_update(query)
 
         return HTTPCodes.OK.value, {}
