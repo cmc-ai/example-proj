@@ -300,7 +300,9 @@ class ClientAPIController(APIController):
         query = f"""
             SELECT cc.* FROM ClientConfiguration cc JOIN ClientPortfolio cp ON cc.clientPortfolioId = cp.id
             WHERE cp.clientId = {client_id}
+            {self._build_filter_string(limit_offset=True)};
         """
+        print(f"Get collection query: {query}")
         columns, rows = self._execute_select(query)
         mapped_items = self._map_cols_rows(columns, rows)
         return mapped_items
