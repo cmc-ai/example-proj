@@ -298,18 +298,19 @@ class ClientAPIController(APIController):
     def get_collection(self):
         client_id = self._client_id or -1
 
-        limit_offset = True if 'limit' in self.params or 'offset' in self.params else False
+        use_limit_offset = True if 'limit' in self.params or 'offset' in self.params else False
 
         query = f"""
             SELECT cc.* FROM ClientConfiguration cc JOIN ClientPortfolio cp ON cc.clientPortfolioId = cp.id
-            WHERE cp.clientId = {client_id};
+            WHERE cp.clientId = {client_id}
+            {self._build_filter_string(limit_offset=use_limit_offset)};
         """
 
         print(f"Get collection query: {query}")
         columns, rows = self._execute_select(query)
         mapped_items = self._map_cols_rows(columns, rows)
 
-        if limit_offset:
+        if use_limit_offset:
             query = f"""
                 SELECT COUNT(DISTINCT(id)) 
                 FROM ClientConfiguration
