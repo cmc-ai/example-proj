@@ -235,8 +235,7 @@ class ClientAPIController(APIController):
     def get_portfolio(self):
         client_id = self._client_id or -1
         use_limit_offset = True if 'limit' in self.params or 'offset' in self.params else False
-        query = f"""SELECT * FROM ClientPortfolio WHERE clientId = {client_id}"
-                f" {self._build_filter_string(limit_offset=use_limit_offset)};"""
+        query = f"SELECT * FROM ClientPortfolio WHERE clientId = {client_id} {self._build_filter_string(limit_offset=use_limit_offset)}"
         columns, rows = self._execute_select(query)
         mapped_items = self._map_cols_rows(columns, rows)
 
