@@ -311,7 +311,7 @@ class ClientAPIController(APIController):
 
         if limit_offset:
             query = f"""
-                SELECT COUNT(DISTINCT(d.id)) 
+                SELECT COUNT(DISTINCT(id)) 
                 FROM ClientConfiguration
                 {self._build_filter_string(limit_offset=False)};
             """
@@ -361,7 +361,7 @@ class ClientAPIController(APIController):
 
         query = f"""
             INSERT INTO ClientConfiguration 
-            (clientPortfolioId, linkExpMinutes, gapBetweenJourneysDays, createDate, lastUpdateDate, updatesegmentinterval )
+            (clientPortfolioId, elinkExpMinutes, gapBetweenJourneysDays, createDate, lastUpdateDate, updatesegmentinterval )
             VALUES 
             ({client_portfolio_id}, {link_exp_minutes}, {gap_btw_journeys_days}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 
             {update_segment_interval});
