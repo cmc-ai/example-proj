@@ -297,11 +297,28 @@ class ClientAPIController(APIController):
 
     def get_collection(self):
         client_id = self._client_id or -1
+
+        limit_offset = True if 'limit' in self.params.get or 'offset' in self.params.get else False
+
         query = f"""
             SELECT cc.* FROM ClientConfiguration cc JOIN ClientPortfolio cp ON cc.clientPortfolioId = cp.id
-            WHERE cp.clientId = {client_id}
-            {self._build_filter_string(limit_offset=True)};
+            WHERE cp.clientId = {client_id};
         """
+
+        if limit_offset:
+            query = f"""
+                SELECT COUNT(DISTINCT(d.id)) 
+                FROM ClientConfiguration
+                {self._build_filter_string(limit_offset=False)};
+            """
+            columns, rows = self._execute_select(query)
+            total_count = int(rows[0][0])
+
+            # return {
+            #     'data': [groupped_debts[debt_id] for debt_id in groupped_debts],
+            #     'pagination': {'totalCount': total_count}
+            # }
+
         print(f"Get collection query: {query}")
         columns, rows = self._execute_select(query)
         mapped_items = self._map_cols_rows(columns, rows)
