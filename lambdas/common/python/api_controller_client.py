@@ -248,7 +248,7 @@ class ClientAPIController(APIController):
             columns, rows = self._execute_select(query)
             total_count = int(rows[0][0])
 
-            return {
+            return HTTPCodes.OK.value, {
                 'data': mapped_items,
                 'pagination': {
                     'totalCount': total_count,
@@ -257,7 +257,7 @@ class ClientAPIController(APIController):
                 },
             }
 
-        return mapped_items
+        return HTTPCodes.OK.value, mapped_items
 
     def post_portfolio(self):
         if not self._client_id:
@@ -339,7 +339,7 @@ class ClientAPIController(APIController):
             columns, rows = self._execute_select(query)
             total_count = int(rows[0][0])
 
-            return {
+            return HTTPCodes.OK.value, {
                 'data': mapped_items,
                 'pagination': {
                     'totalCount': total_count,
@@ -348,7 +348,7 @@ class ClientAPIController(APIController):
                 }
             }
 
-        return mapped_items
+        return HTTPCodes.OK.value, mapped_items
 
     def post_collection(self):
         if not self._client_id:

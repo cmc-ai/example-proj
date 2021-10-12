@@ -100,13 +100,13 @@ def lambda_handler(event, context):
     elif path == '/api/collection':
         controller = ClientAPIController(**c_params)
         if http_method == 'GET':
-            response = controller.get_collection()
+            code, response = controller.get_collection()
         if http_method == 'POST':
-            response = controller.post_collection()
+            code, response = controller.post_collection()
         if http_method == 'PUT':
-            response = controller.put_collection()
+            code, response = controller.put_collection()
         if http_method == 'DELETE':
-            response = controller.delete_collection()
+            code, response = controller.delete_collection()
 
     # Other
     elif path == '/api/report':
