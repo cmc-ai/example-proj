@@ -3,12 +3,13 @@ import json
 from jose import jwt
 
 from constants import HTTPCodes
-from api_controller_client import DebtAPIController, ClientAPIController, OtherAPIController
+from api_controller_client import DebtAPIController, ClientAPIController, OtherAPIController, DebtPaymentController
 from helper_functions import get_or_create_pg_connection
 
 DEFAULT_RESPONSE = {"message": "Path is not recognized"}
 
 rds_client = boto3.client('rds')
+param_store_client = boto3.client('ssm')
 pg_conn = None
 
 
@@ -113,5 +114,16 @@ def lambda_handler(event, context):
         controller = OtherAPIController(**c_params)
         if http_method == 'GET':
             response = controller.get_report()
+
+    elif path == '/api/payment-link':
+        controller = DebtPaymentController(**c_params)
+        if http_method == 'GET':
+            payment_link, exp_minutes = controller.get_or_create_payment_link(pg_conn=pg_conn,
+                                                                              ssm_client=param_store_client)
+            code = HTTPCodes.OK.value if payment_link and exp_minutes else HTTPCodes.ERROR.value
+            response = {
+                'payment_link': payment_link,
+                'exp_minutes': exp_minutes
+            }
 
     return build_response(response, code)
