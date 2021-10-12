@@ -3,7 +3,8 @@ import json
 from jose import jwt
 
 from constants import HTTPCodes
-from api_controller_client import DebtAPIController, ClientAPIController, OtherAPIController, DebtPaymentController
+from api_controller_client import DebtAPIController, ClientAPIController, OtherAPIController
+from payment_controller import DebtPaymentController
 from helper_functions import get_or_create_pg_connection
 
 DEFAULT_RESPONSE = {"message": "Path is not recognized"}
