@@ -386,7 +386,7 @@ class ClientAPIController(APIController):
 
         query = f"""
             INSERT INTO ClientConfiguration 
-            (clientPortfolioId, elinkExpMinutes, gapBetweenJourneysDays, createDate, lastUpdateDate, updatesegmentinterval )
+            (clientPortfolioId, linkExpMinutes, gapBetweenJourneysDays, createDate, lastUpdateDate, updatesegmentinterval )
             VALUES 
             ({client_portfolio_id}, {link_exp_minutes}, {gap_btw_journeys_days}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 
             {update_segment_interval});
