@@ -332,8 +332,8 @@ class ClientAPIController(APIController):
 
         if use_limit_offset:
             query = f"""
-                SELECT COUNT(DISTINCT(id)) 
-                FROM ClientConfiguration
+                SELECT COUNT(DISTINCT(cc.id)) FROM ClientConfiguration cc JOIN ClientPortfolio cp ON cc.clientPortfolioId = cp.id
+                WHERE cp.clientId = {client_id}
                 {self._build_filter_string(limit_offset=False)};
             """
             columns, rows = self._execute_select(query)
