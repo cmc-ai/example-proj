@@ -117,6 +117,9 @@ def lambda_handler(event, context):
             response = controller.get_report()
 
     elif path == '/api/payment-link':
+        print("======= DEBUG =========")
+        print(c_params)
+        print("=======================")
         controller = DebtPaymentController(**c_params)
         if http_method == 'GET':
             payment_link, exp_minutes = controller.get_or_create_payment_link(pg_conn=pg_conn,
