@@ -250,7 +250,11 @@ class ClientAPIController(APIController):
 
             return {
                 'data': mapped_items,
-                'pagination': {'totalCount': total_count}
+                'pagination': {
+                    'totalCount': total_count,
+                    'perPage': self.params.get('limit', 0),
+                    'page': self.params.get('offset', 0),
+                },
             }
 
         return mapped_items
@@ -337,7 +341,11 @@ class ClientAPIController(APIController):
 
             return {
                 'data': mapped_items,
-                'pagination': {'totalCount': total_count}
+                'pagination': {
+                    'totalCount': total_count,
+                    'perPage': self.params.get('limit', 0),
+                    'page': self.params.get('offset', 0),
+                }
             }
 
         return mapped_items
