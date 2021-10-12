@@ -90,7 +90,7 @@ def lambda_handler(event, context):
     elif path == '/api/portfolio':
         controller = ClientAPIController(**c_params)
         if http_method == 'GET':
-            response = controller.get_portfolio()
+            code, response = controller.get_portfolio()
         if http_method == 'POST':
             code, response = controller.post_portfolio()
         if http_method == 'PUT':
