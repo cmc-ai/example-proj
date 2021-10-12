@@ -11,6 +11,7 @@ class PaymentAPIController(APIController):
         debt_id = self.params.get("debtId")
         if not debt_id:
             return HTTPCodes.ERROR.value, {'message': 'Missing debtId'}
+        debt_id = int(debt_id)
 
         payment_link, exp_minutes = DebtPaymentController(debt_id=debt_id).get_or_create_payment_link(
             pg_conn=self.db_conn, ssm_client=param_store_client)
