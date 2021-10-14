@@ -30,6 +30,8 @@ PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO = set()
 PROCESSED_DEBTS_ID = set()
 CURRENT_UTC_TS = int(datetime.datetime.utcnow().timestamp())
 
+PINPOINT_JOURNEY_PREFIX = 'chatbot_journey_'
+
 
 def create_db_connection() -> pg8000.Connection:
     global pg_conn
@@ -173,6 +175,93 @@ def save_borrower_items_to_s3(client_id: int, borrower_items: List[Dict]) -> str
     return "s3://{}".format(os.path.join(s3_bucket, s3_base_path, f"client_id_{client_id}.json"))
 
 
+def get_or_create_journey_entry_activity(journey_id: str, debt_id: int) -> int:
+    conn = create_db_connection()
+
+    query = f"""
+            SELECT id, journeyawsid, debtid FROM public.journeyentryactivity WHERE journeyawsid='{journey_id}' and debtid='{debt_id}';
+        """
+    with closing(conn.cursor()) as cursor:
+        row = cursor.execute(query).fetchone()
+        if row:
+            journey_entry_activity_id = row[0]
+            print(f"Found already created journey entry activity with id: {journey_entry_activity_id}")
+            return journey_entry_activity_id
+
+    query = f"""
+            INSERT INTO public.journeyentryactivity(
+            journeyawsid, debtid, entrydatetimeutc, createdate, lastupdatedate)
+            VALUES ('{journey_id}', {debt_id}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            RETURNING id
+            """
+    print(f"Query: {query}")
+
+    with closing(conn.cursor()) as cursor:
+        row = cursor.execute(query).fetchone()
+        conn.commit()
+        journey_entry_activity_id = row[0]
+        print(f"Created journey entry activity with id: {journey_entry_activity_id}")
+        return journey_entry_activity_id
+
+
+def create_pinpoint_journey(pinpoint_project_id: str, client_id: int, segment_id: str) -> Dict:
+    print(
+        f"Create journey for pinpoint project id: {pinpoint_project_id} client id: {client_id} segment id: {segment_id}")
+    activity_id = int(time.time())
+    ret = pinpoint_client.create_journey(
+        ApplicationId=pinpoint_project_id,
+        WriteJourneyRequest={
+            'Activities': {
+                f'{activity_id}': {
+                    'CUSTOM': {
+                        'DeliveryUri': 'arn:aws:lambda:ca-central-1:630063752049:function:chatbot-journay-custom-channel-lambda',
+                        'EndpointTypes': ['CUSTOM', 'SMS']
+                    }
+                }
+            },
+            'Name': f'{PINPOINT_JOURNEY_PREFIX}{client_id}',
+            'StartActivity': f'{activity_id}',
+            'StartCondition': {
+                'SegmentStartCondition': {
+                    'SegmentId': segment_id
+                }
+            },
+            'State': 'ACTIVE',
+            'WaitForQuietTime': False,
+            'RefreshOnSegmentUpdate': True,
+            'RefreshFrequency': 'PT1H',
+            'Schedule': {
+                'EndTime': datetime.datetime.utcnow() + datetime.timedelta(days=500),
+                'StartTime': datetime.datetime.utcnow() + datetime.timedelta(minutes=1),
+                'Timezone': 'UTC'
+            },
+        }
+    )
+    print(f"Create journey response: {ret}")
+    return ret
+
+
+def get_pinpoints_journeys(pinpoint_project_id: str) -> Dict:
+    print("Get pinpoint journey list")
+    ret = pinpoint_client.list_journeys(ApplicationId=pinpoint_project_id)
+    return dict((i['Name'], i['Id']) for i in ret['JourneysResponse']['Item'])
+
+
+def validate_or_create_journey_for_client(pinpoint_project_id: str, client_id: int, segment_id: str) -> str:
+    pinpoint_journeys = get_pinpoints_journeys(pinpoint_project_id=pinpoint_project_id)
+    journey_name = f"{PINPOINT_JOURNEY_PREFIX}{client_id}"
+    if f"{journey_name}" not in pinpoint_journeys:
+        print("Create new journey")
+        pinpoint_journey = create_pinpoint_journey(pinpoint_project_id=pinpoint_project_id, client_id=client_id,
+                                                   segment_id=segment_id)
+        print()
+        return pinpoint_journey['JourneyResponse']['Id']
+
+    else:
+        print(f"Journey {journey_name} already created id: {pinpoint_journeys[journey_name]}")
+        return pinpoint_journeys[journey_name]
+
+
 def get_pinpoint_segments(pinpoint_project_id: str) -> Dict:
     ret = pinpoint_client.get_segments(
         ApplicationId=pinpoint_project_id
@@ -250,8 +339,17 @@ def lambda_handler(event, context):
 
         if s3_path:
             try:
-                pinpoint_create_import_job(s3_path=s3_path, client_id=client_id,
-                                           pinpoint_project_id=os.getenv("AWS_PINPOINT_PROJECT_ID"))
+                import_job_ret = pinpoint_create_import_job(s3_path=s3_path, client_id=client_id,
+                                                            pinpoint_project_id=os.getenv("AWS_PINPOINT_PROJECT_ID"))
+                segment_id = import_job_ret['ImportJobResponse']['Definition']['SegmentId']
+                pinpoint_journey_id = validate_or_create_journey_for_client(
+                    pinpoint_project_id=os.getenv("AWS_PINPOINT_PROJECT_ID"), client_id=client_id,
+                    segment_id=segment_id)
+
+                for debt_id in PROCESSED_DEBTS_ID:
+                    journey_entry_activity_id = get_or_create_journey_entry_activity(journey_id=pinpoint_journey_id,
+                                                                                     debt_id=debt_id)
+
             except Exception as e:
                 handle_fail(journey_process_statuses=journey_process_statuses)
                 raise e
@@ -264,18 +362,24 @@ def lambda_handler(event, context):
             set_journey_process_status(status=JourneyProcessStatus.success.value,
                                        journey_process_status=journey_process_statuses[portfolio_id])
 
-    get_pinpoint_segments(pinpoint_project_id=os.getenv("AWS_PINPOINT_PROJECT_ID"))
-
     return {
         'statusCode': 200,
         'body': s3_path
     }
 
+# if __name__ == "__main__":
+# print(get_pinpoints_journeys('34e7ff51c4824c079b9ab87a6a530c2b'))
+# validate_or_create_journey_for_client('34e7ff51c4824c079b9ab87a6a530c2b', 23, 'c40c83edb9be433e83f3cfc7f1e809ea')
+# ret = pinpoint_create_import_job(s3_path='s3://chatbot-dev-clients-data/pinpoint_segments/client_id_1.json',
+#                                  client_id=1, pinpoint_project_id='34e7ff51c4824c079b9ab87a6a530c2b')
+# print(ret['ImportJobResponse']['Definition']['SegmentId'])
+# print(ret['ImportJobResponse']['Definition']['S3Url'])
+# print(ret)
+# response = pinpoint_client.get_journey(
+#     ApplicationId='34e7ff51c4824c079b9ab87a6a530c2b',
+#     JourneyId='4b5ed88208fb4b1a85ceeb1d5ddf86d3'
+# )
+# print(response)
+# lambda_handler({'Input': {'client_id': 69}}, {})
 
-if __name__ == "__main__":
-    print(lambda_handler({
-        "Input": {
-            "client_id": 43,
-            "pinpoint_project_id": "34e7ff51c4824c079b9ab87a6a530c2b"
-        }
-    }, None))
+# PYTHONPATH=../common/python AWS_REGION=ca-central-1 AWS_PINPOINT_PROJECT_ID=34e7ff51c4824c079b9ab87a6a530c2b BASE_PATH=pinpoint_segments CLIENTS_S3_BUCKET_NAME=chatbot-dev-clients-data DBEndPoint=chatbot-dev-rds-proxy.proxy-cd4lkfqaythe.ca-central-1.rds.amazonaws.com DBUserName=superuser DYNAMODB_JOURNEY_PROCESS_STATUS_TABLE=chatbot-dev-journey-process-status DYNAMODB_MESSAGE_TABLE=chatbot-dev-messages DYNAMODB_SESSION_TABLE=chatbot-dev-sessions DatabaseName=symphony PINPOINT_ROLE_ARN=arn:aws:iam::630063752049:role/PinpointSegmentImport SQS_QUEUE_NAME=chatbot-devTaskQueue20210730121149213800000002 python3 app.py
