@@ -444,7 +444,7 @@ class ClientAPIController(APIController):
         print(f"Delete client configuration with id {collection_id}")
         query = f"""
                     DELETE FROM ClientConfiguration
-                    WHERE id={collection_id};
+                    WHERE id = {collection_id};
                 """
         self._execute_delete(query)
 
@@ -458,42 +458,72 @@ class OtherAPIController(APIController):
             day=1, hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M:%S")
         end_date = self.params.get('endDate') or datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-        query = f"""
+        portfolio_id = self.params.get('portfolioId', None)
+
+        if portfolio_id:
+            query = f"""
                     SELECT status, COUNT(*) AS num, SUM(originalbalance) as originalbalance FROM debt
-                    WHERE createdate >= '{start_data}' and createdate <= '{end_date}' 
+                    WHERE createdate >= '2021.10.01' and createdate <= '2021.10.21' and clientportfolioid={portfolio_id}
+                    GROUP BY status, clientportfolioid
+                    """
+        else:
+            query = f"""
+                    SELECT status, COUNT(*) AS num, SUM(originalbalance) as originalbalance FROM debt
+                    WHERE createdate >= '{start_data}' and createdate <= '{end_date}' a
                     GROUP BY status;
-                """
+                    """
         newly_added_items = self._map_cols_rows(*self._execute_select(query))
         print(f"newly_added_items: {newly_added_items}")
 
-        query = f"""
+        if portfolio_id:
+            query = f"""
+                    SELECT COUNT(*) AS num FROM debt
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}'
+                    and clientportfolioid = {portfolio_id};
+                    """
+        else:
+            query = f"""
                     SELECT COUNT(*) AS num FROM debt
                     WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
-                """
+                    """
         completes_items = self._map_cols_rows(*self._execute_select(query))
         print(f"completes_items: {completes_items}")
         completes_count = completes_items[0]['num'] or 0 if completes_items else 0
 
-        query = f"""
+        if portfolio_id:
+            query = f"""
+                    SELECT COUNT(*) AS num FROM debt
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status = 'inactive'
+                     and clientportfolioid = {portfolio_id};
+                    """
+        else:
+            query = f"""
                     SELECT COUNT(*) AS num FROM debt
                     WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status = 'inactive';
-                """
+                    """
         inactive_items = self._map_cols_rows(*self._execute_select(query))
         print(f"inactive_items: {inactive_items}")
         inactive_count = inactive_items[0]['num'] or 0 if inactive_items else 0
 
         query = f"""
-                    SELECT SUM(amount) AS amount FROM debtpayment
-                    WHERE paymentDateTimeUTC >= '{start_data}' and paymentDateTimeUTC <= '{end_date}';
+                SELECT SUM(amount) AS amount FROM debtpayment
+                WHERE paymentDateTimeUTC >= '{start_data}' and paymentDateTimeUTC <= '{end_date}';
                 """
         collected_amounts = self._map_cols_rows(*self._execute_select(query))
         print(f"collected_amounts: {collected_amounts}")
         collected_amount = collected_amounts[0]['amount'] or 0 if collected_amounts else 0
 
-        query = f"""
+        if portfolio_id:
+            query = f"""
+                    SELECT SUM(outstandingBalance) AS amount FROM debt
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}'
+                    and clientportfolioid = {portfolio_id};
+                    """
+        else:
+            query = f"""
                     SELECT SUM(outstandingBalance) AS amount FROM debt
                     WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}';
-                """
+                    """
         original_balances = self._map_cols_rows(*self._execute_select(query))
         print(f"original_balances: {original_balances}")
         original_balance = original_balances[0]['amount'] or 0 if original_balances else 0
