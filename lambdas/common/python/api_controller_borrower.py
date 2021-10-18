@@ -157,16 +157,16 @@ class PaymentAPIController(APIController):
         if not verified:
             return HTTPCodes.ERROR.value, {'message': 'Verification Failed'}
 
-        if 'cardHolder' not in self.body.get:
+        if 'cardHolder' not in self.body:
             return HTTPCodes.ERROR.value, {'message': f'Missing card holder'}
 
-        if 'cardNumber' not in self.body.get:
+        if 'cardNumber' not in self.body:
             return HTTPCodes.ERROR.value, {'message': f'Missing card number'}
 
-        if 'expMonYear' not in self.body.get:
+        if 'expMonYear' not in self.body:
             return HTTPCodes.ERROR.value, {'message': f'Missing card expire date'}
 
-        if 'cardCvc' not in self.body.get:
+        if 'cardCvc' not in self.body:
             return HTTPCodes.ERROR.value, {'message': f'Missing card CVC code'}
 
         debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
