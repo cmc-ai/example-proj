@@ -29,6 +29,12 @@ class PaymentAPIController(APIController):
         username_key = f'{sp_key_prefix}/{client_id}/username'
         apikey_key = f'{sp_key_prefix}/{client_id}/apikey'
         ssm_client = boto3.client('ssm')
+
+        print(f"sp_key_prefix: {sp_key_prefix}")
+        print(f"acc_sid_key: {acc_sid_key}")
+        print(f"username_key: {username_key}")
+        print(f"apikey_key: {apikey_key}")
+        print(f"ssm_client: {ssm_client}")
         acc_sid = ssm_client.get_parameter(Name=acc_sid_key, WithDecryption=False)['Parameter']['Value']
         username = ssm_client.get_parameter(Name=username_key, WithDecryption=False)['Parameter']['Value']
         apikey = ssm_client.get_parameter(Name=apikey_key, WithDecryption=True)['Parameter']['Value']
