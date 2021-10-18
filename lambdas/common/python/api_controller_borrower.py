@@ -305,6 +305,8 @@ class PaymentAPIController(APIController):
         borrower_funding_account_id = self.params.get("borrowerFundingAccountId")
         print(f"Received borrowerFundingAccountId: {borrower_funding_account_id}")
 
+        self._create_sp_proc(debt_id)
+
         query = f"""
             SELECT bfa.* 
             FROM BorrowerFundingAccount bfa JOIN Borrower b ON bfa.borrowerId = b.id
