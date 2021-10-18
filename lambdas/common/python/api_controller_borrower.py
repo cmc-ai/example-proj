@@ -311,11 +311,20 @@ class PaymentAPIController(APIController):
         if not verified:
             return HTTPCodes.ERROR.value, {'message': 'Verification Failed'}
 
-        debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
-        print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
-
-        borrower_funding_account_id = self.params.get("borrowerFundingAccountId")
+        borrower_funding_account_id = self.body.get("borrowerFundingAccountId")
+        if not borrower_funding_account_id:
+            return HTTPCodes.ERROR.value, {'message': 'No borrowerFundingAccountId found'}
         print(f"Received borrowerFundingAccountId: {borrower_funding_account_id}")
+
+        debt_amount = self.body.get("debtAmount")
+        if not debt_amount:
+            return HTTPCodes.ERROR.value, {'message': 'No debtAmount found'}
+
+        print(f"Received debtAmount: {debt_amount}")
+
+        debt_id, debt_amount_extracted, expiration_utc_ts = decrypted_link.split(':')
+        print(
+            f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount_extracted, expiration_utc_ts}')
 
         self._create_sp_proc(debt_id)
 
