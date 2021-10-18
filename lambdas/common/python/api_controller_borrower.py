@@ -255,7 +255,7 @@ class PaymentAPIController(APIController):
                     paymentProcessor, paymentProcessorUserId, token, 
                     createDate, lastUpdateDate)
                     VALUES 
-                    ({borrowerId},'{accountType}',{cardNumber_last_4_digits},'{cardHolder}',
+                    ({borrowerId},'{accountType}','{cardNumber_last_4_digits}','{cardHolder}',
                     '{PAYMENT_PROCESSOR_NAME}', '{user_id}', '{tokenized_id}',
                     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """
@@ -269,7 +269,7 @@ class PaymentAPIController(APIController):
             query = f"""
                 SELECT id FROM BorrowerFundingAccount 
                 WHERE borrowerId = {borrowerId} AND paymentProcessorUserId = '{user_id}'
-                AND cardNumber = {cardNumber_last_4_digits} AND token = '{tokenized_id}'
+                AND cardNumber = '{cardNumber_last_4_digits}' AND token = '{tokenized_id}'
                 """
             cols, rows = self._execute_select(query)
             borrower_funding_account_id = rows[THE_ONLY_INDEX][THE_ONLY_INDEX]
