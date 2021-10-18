@@ -61,6 +61,7 @@ def lambda_handler(event, context):
         print("Process path: /api/payment/account")
         controller = PaymentAPIController(**c_params)
         if http_method == 'POST':
+            print("Processing POST request")
             code, response = controller.post_payment_account()
         if http_method == 'DELETE':
             code, response = controller.delete_payment_account()
