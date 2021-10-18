@@ -166,7 +166,7 @@ class PaymentAPIController(APIController):
         if 'expMonYear' not in self.body:
             return HTTPCodes.ERROR.value, {'message': f'Missing card expire date'}
 
-        if 'cardCvc' not in self.body:
+        if 'cvc' not in self.body:
             return HTTPCodes.ERROR.value, {'message': f'Missing card CVC code'}
 
         debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
