@@ -302,12 +302,16 @@ class PaymentAPIController(APIController):
             FROM BorrowerFundingAccount bfa JOIN Borrower b ON bfa.borrowerId = b.id
             WHERE b.debtId = {debt_id} AND bfa.id = {borrower_funding_account_id}
         """
+
+        print(f"Query: {query}")
         query_results = self._map_cols_rows(*self._execute_select(query))
+        print(f"Query result: {query_results}")
+
         if not query_results:
             return HTTPCodes.ERROR.value, {
                 'message': f'Borrower funding account {borrower_funding_account_id} doesnt belong to Debt {debt_id}'
             }
-
+        print("Extract funding account")
         funding_account = query_results[0]
         print(f'funding_account {funding_account}')
         err_code, err_code_description, data_dict = self._sp_proc.make_payment(funding_account.get('accounttype'),
