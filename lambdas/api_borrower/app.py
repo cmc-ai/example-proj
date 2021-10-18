@@ -48,7 +48,9 @@ def lambda_handler(event, context):
     code = HTTPCodes.OK.value
 
     # Payment
+    print(f"Received path: {path}")
     if path == '/api/payment':
+        print("Process path: /api/payment")
         controller = PaymentAPIController(**c_params)
         if http_method == 'GET':
             code, response = controller.get_payment()
@@ -56,6 +58,7 @@ def lambda_handler(event, context):
             code, response = controller.post_payment()
 
     if path == '/api/payment/account':
+        print("Process path: /api/payment/account")
         controller = PaymentAPIController(**c_params)
         if http_method == 'POST':
             code, response = controller.post_payment_account()
