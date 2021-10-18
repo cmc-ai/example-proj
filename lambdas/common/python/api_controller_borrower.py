@@ -327,6 +327,16 @@ class PaymentAPIController(APIController):
         print(
             f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount_extracted, expiration_utc_ts}')
 
+        # check if debt hasn't been paid already
+        query = f"""SELECT count(*) FROM DebtPayment WHERE debtid = {debt_id};"""
+        print(f"Query: {query}")
+        cols, rows = self._execute_select(query)
+
+        debt_payment_cnt = rows[THE_ONLY_INDEX][THE_ONLY_INDEX]
+        print(f'DebtPayment count: {debt_payment_cnt}')
+        if int(debt_payment_cnt) > 0:
+            return HTTPCodes.ERROR.value, {'message': f'Debt {debt_id} is already paid'}
+
         self._create_sp_proc(debt_id)
 
         query = f"""
