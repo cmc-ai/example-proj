@@ -157,6 +157,18 @@ class PaymentAPIController(APIController):
         if not verified:
             return HTTPCodes.ERROR.value, {'message': 'Verification Failed'}
 
+        if 'cardHolder' not in self.body.get:
+            return HTTPCodes.ERROR.value, {'message': f'Missing card holder'}
+
+        if 'cardNumber' not in self.body.get:
+            return HTTPCodes.ERROR.value, {'message': f'Missing card number'}
+
+        if 'expMonYear' not in self.body.get:
+            return HTTPCodes.ERROR.value, {'message': f'Missing card expire date'}
+
+        if 'cardCvc' not in self.body.get:
+            return HTTPCodes.ERROR.value, {'message': f'Missing card CVC code'}
+
         debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
         print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
 
@@ -209,7 +221,7 @@ class PaymentAPIController(APIController):
 
             # add funding account
             cardNumber = self.body.get('cardNumber')
-            cardNumber_last_4_digits = int(str(cardNumber)[-4:])
+            cardNumber_last_4_digits = str(cardNumber)[-4:]
             expMonYear = self.body.get('expMonYear')
             cvc = self.body.get('cvc')
             accountType = FundingType.cc.value
