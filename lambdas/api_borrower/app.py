@@ -57,12 +57,13 @@ def lambda_handler(event, context):
         if http_method == 'POST':
             code, response = controller.post_payment()
 
-    if path == '/api/payment/account':
+    elif path == '/api/payment/account':
         print("Process path: /api/payment/account")
         controller = PaymentAPIController(**c_params)
         if http_method == 'POST':
             code, response = controller.post_payment_account()
         if http_method == 'DELETE':
             code, response = controller.delete_payment_account()
-
+    else:
+        return build_response({'message': 'Unrecognized path'}, code=404)
     return build_response(response, code)
