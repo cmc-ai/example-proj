@@ -112,6 +112,7 @@ class PaymentAPIController(APIController):
 
             # 4.  remove debt session from Dynamo
             debt_records = [d for d in DebtRecordModel.query(debt_id)]
+            print(f"Found debt records: {debt_records}")
             for record in debt_records:
                 record.delete()
 
