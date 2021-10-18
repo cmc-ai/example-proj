@@ -449,7 +449,6 @@ class ClientAPIController(APIController):
         self._execute_delete(query)
 
         return HTTPCodes.OK.value, {}
-        pass
 
 
 class OtherAPIController(APIController):

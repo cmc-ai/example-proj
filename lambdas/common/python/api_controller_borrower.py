@@ -138,7 +138,7 @@ class PaymentAPIController(APIController):
 
         return HTTPCodes.OK.value, {'funding_accounts': funding_accounts, 'borrower': borrower}
 
-    def post_payment(self):
+    def post_payment_account(self):
         """
         0. Check if debt hasn't been paid
         1. If new payment method:
@@ -228,17 +228,22 @@ class PaymentAPIController(APIController):
                 return HTTPCodes.ERROR.value, {'message': f'Failed to create new funding account {cardHolder}'}
 
             # save new funding account into Aurora
-            query = f"""
-                INSERT INTO BorrowerFundingAccount
-                (borrowerId, accountType, cardNumber, cardHolder,
-                paymentProcessor, paymentProcessorUserId, token, 
-                createDate, lastUpdateDate)
-                VALUES 
-                ({borrowerId},'{accountType}',{cardNumber_last_4_digits},'{cardHolder}',
-                '{PAYMENT_PROCESSOR_NAME}', '{user_id}', '{tokenized_id}',
-                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            """
-            self._execute_insert(query)
+            try:
+                query = f"""
+                    INSERT INTO BorrowerFundingAccount
+                    (borrowerId, accountType, cardNumber, cardHolder,
+                    paymentProcessor, paymentProcessorUserId, token, 
+                    createDate, lastUpdateDate)
+                    VALUES 
+                    ({borrowerId},'{accountType}',{cardNumber_last_4_digits},'{cardHolder}',
+                    '{PAYMENT_PROCESSOR_NAME}', '{user_id}', '{tokenized_id}',
+                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """
+                self._execute_insert(query)
+            except Exception as e:
+                print(f'Can not insert into borrower funding account')
+                print(f'Error: {e}')
+                return HTTPCodes.ERROR.value, {'message': f'Failed to create borrower funding account'}
 
             # get id of the new account
             query = f"""
@@ -249,6 +254,49 @@ class PaymentAPIController(APIController):
             cols, rows = self._execute_select(query)
             borrower_funding_account_id = rows[THE_ONLY_INDEX][THE_ONLY_INDEX]
 
+            if not borrower_funding_account_id:
+                return HTTPCodes.ERROR.value, {'message': f'Failed to create borrower funding account'}
+
+        return HTTPCodes.OK.value, {
+            'data_dict': {
+                "borrowerFundingAccountId": borrower_funding_account_id
+            }
+        }
+
+    def delete_payment_account(self):
+        print("Delete payment account")
+        borrower_funding_account_id = self.params.get("borrowerFundingAccountId")
+        print(f"Received borrowerFundingAccountId: {borrower_funding_account_id}")
+
+        if not borrower_funding_account_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing borrowerFundingAccountId'}
+
+        try:
+            query = f"""
+                    DELETE FROM BorrowerFundingAccount
+                    WHERE id={borrower_funding_account_id};
+                    """
+            self._execute_delete(query)
+        except Exception as e:
+            print(f"Can not to delete funding account with id {borrower_funding_account_id}")
+            print(e)
+
+            return HTTPCodes.ERROR.value, {
+                'message': f'{e}'
+            }
+        return HTTPCodes.OK.value, {}
+
+    def post_payment(self):
+        decrypted_link, verified = self._verify_hash()
+        if not verified:
+            return HTTPCodes.ERROR.value, {'message': 'Verification Failed'}
+
+        debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
+        print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
+
+        borrower_funding_account_id = self.params.get("borrowerFundingAccountId")
+        print(f"Received borrowerFundingAccountId: {borrower_funding_account_id}")
+
         query = f"""
             SELECT bfa.* 
             FROM BorrowerFundingAccount bfa JOIN Borrower b ON bfa.borrowerId = b.id
@@ -257,7 +305,7 @@ class PaymentAPIController(APIController):
         query_results = self._map_cols_rows(*self._execute_select(query))
         if not query_results:
             return HTTPCodes.ERROR.value, {
-                'message': f'BorrowerFundingAccount {borrower_funding_account_id} doesnt belong to Debt {debt_id}'
+                'message': f'Borrower funding account {borrower_funding_account_id} doesnt belong to Debt {debt_id}'
             }
 
         funding_account = query_results[0]

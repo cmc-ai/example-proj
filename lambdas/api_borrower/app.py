@@ -55,4 +55,11 @@ def lambda_handler(event, context):
         if http_method == 'POST':
             code, response = controller.post_payment()
 
+    if path == '/api/payment/account':
+        controller = PaymentAPIController(**c_params)
+        if http_method == 'POST':
+            code, response = controller.post_payment_account()
+        if http_method == 'DELETE':
+            code, response = controller.delete_payment_account()
+
     return build_response(response, code)
