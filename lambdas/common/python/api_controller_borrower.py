@@ -389,6 +389,13 @@ class PaymentAPIController(APIController):
         }
 
     def resend_payment_link(self):
+        decrypted_link, verified = self._verify_hash()
+        if not verified:
+            return HTTPCodes.ERROR.value, {'message': 'Verification Failed'}
+
+        debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
+        print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
+
         borrower_funding_account_id = int(self.body.get("borrowerFundingAccountId"))
         if not borrower_funding_account_id:
             return HTTPCodes.ERROR.value, {'message': 'Missing borrower funding account id'}
@@ -396,10 +403,6 @@ class PaymentAPIController(APIController):
         borrower_phone_number = self.body.get("borrowerPhoneNumber")
         if not borrower_phone_number:
             return HTTPCodes.ERROR.value, {'message': 'Missing borrower phone number'}
-
-        debt_id = int(self.params.body("debtId"))
-        if not debt_id:
-            return HTTPCodes.ERROR.value, {'message': 'Missing debt id'}
 
         self._create_and_send_new_payment_link(borrower_id=borrower_funding_account_id,
                                                borrower_phone_number=borrower_phone_number,
