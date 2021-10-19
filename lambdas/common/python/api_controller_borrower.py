@@ -153,7 +153,7 @@ class PaymentAPIController(APIController):
         borrower = self._map_cols_rows(*self._execute_select(query))
 
         if int(expiration_utc_ts) < datetime.utcnow().timestamp():
-            self._create_and_send_new_payment_link(borrower=borrower[0], debt_id=debt_id)
+            self._create_and_send_new_payment_link(borrower=borrower[0], debt_id=int(debt_id))
             return HTTPCodes.OK.value, {'message': 'Link Expired', 'borrower': borrower[0]}
 
         # get borrower's funding accounts
