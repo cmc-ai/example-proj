@@ -396,7 +396,7 @@ class PaymentAPIController(APIController):
         debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
         print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
 
-        borrower_funding_account_id = int(self.body.get("borrowerFundingAccountId"))
+        borrower_funding_account_id = self.body.get("borrowerFundingAccountId")
         if not borrower_funding_account_id:
             return HTTPCodes.ERROR.value, {'message': 'Missing borrower funding account id'}
 
@@ -404,8 +404,8 @@ class PaymentAPIController(APIController):
         if not borrower_phone_number:
             return HTTPCodes.ERROR.value, {'message': 'Missing borrower phone number'}
 
-        self._create_and_send_new_payment_link(borrower_id=borrower_funding_account_id,
+        self._create_and_send_new_payment_link(borrower_id=int(borrower_funding_account_id),
                                                borrower_phone_number=borrower_phone_number,
-                                               debt_id=debt_id)
+                                               debt_id=int(debt_id))
 
         return HTTPCodes.OK.value, {}
