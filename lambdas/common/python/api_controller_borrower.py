@@ -398,7 +398,7 @@ class PaymentAPIController(APIController):
 
         query = f"""
                     SELECT id, phonenum
-                    FROM Borrower debtId = {debt_id}
+                    FROM Borrower WHERE debtId = {debt_id}
                 """
         borrower = self._map_cols_rows(*self._execute_select(query))
 
