@@ -25,19 +25,19 @@ class PaymentAPIController(APIController):
         super(PaymentAPIController, self).__init__(**kwargs)
         self._sp_proc = None
 
-    def _create_and_send_new_payment_link(self, borrower: Dict, debt_id: int):
+    def _create_and_send_new_payment_link(self, borrower_id: int, borrower_phone_number: str, debt_id: int):
         payment_link, exp_minutes = DebtPaymentController(debt_id=debt_id).get_or_create_payment_link(
             pg_conn=self.db_conn, ssm_client=param_store_client)
         if not payment_link and exp_minutes:
             return HTTPCodes.ERROR.value, {'message': 'Can not to get payment link'}
 
         ssm_origination_number_key = os.getenv('SSM_PINPOINT_ORIGINATION_NUMBER_KEY',
-                                               '/chatbot-dev/dev/pinpoint/origination_number')
+                                               '/chatbot/dev/pinpoint/origination_number')
         origination_number = param_store_client.get_parameter(Name=ssm_origination_number_key,
                                                               WithDecryption=False)['Parameter']['Value']
 
         send_sms(pinoint_client=pinoint_client, message=payment_link, originationNumber=origination_number,
-                 destinationNumber=borrower['phonenum'], borrower_id=borrower['id'])
+                 destinationNumber=borrower_phone_number, borrower_id=borrower_id)
 
     def _create_sp_proc(self, debt_id):
         query = f"SELECT id, clientId FROM Debt WHERE id = {debt_id}"
@@ -153,8 +153,7 @@ class PaymentAPIController(APIController):
         borrower = self._map_cols_rows(*self._execute_select(query))
 
         if int(expiration_utc_ts) < datetime.utcnow().timestamp():
-            self._create_and_send_new_payment_link(borrower=borrower[0], debt_id=int(debt_id))
-            return HTTPCodes.OK.value, {'message': 'Link Expired', 'borrower': borrower[0]}
+            return HTTPCodes.OK.value, {'message': 'Link Expired', 'borrower': borrower, 'debt_id': debt_id}
 
         # get borrower's funding accounts
         query = f"""
@@ -388,3 +387,22 @@ class PaymentAPIController(APIController):
             'error_code_description': err_code_description,
             'data_dict': data_dict
         }
+
+    def resend_payment_link(self):
+        borrower_funding_account_id = int(self.body.get("borrowerFundingAccountId"))
+        if not borrower_funding_account_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing borrower funding account id'}
+
+        borrower_phone_number = self.body.get("borrowerPhoneNumber")
+        if not borrower_phone_number:
+            return HTTPCodes.ERROR.value, {'message': 'Missing borrower phone number'}
+
+        debt_id = int(self.params.body("debtId"))
+        if not debt_id:
+            return HTTPCodes.ERROR.value, {'message': 'Missing debt id'}
+
+        self._create_and_send_new_payment_link(borrower_id=borrower_funding_account_id,
+                                               borrower_phone_number=borrower_phone_number,
+                                               debt_id=debt_id)
+
+        return HTTPCodes.OK.value, {}
