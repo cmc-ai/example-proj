@@ -402,8 +402,8 @@ class PaymentAPIController(APIController):
                 """
         borrower = self._map_cols_rows(*self._execute_select(query))
 
-        self._create_and_send_new_payment_link(borrower_id=int(borrower['id']),
-                                               borrower_phone_number=borrower['phonenum'],
+        self._create_and_send_new_payment_link(borrower_id=int(borrower[0]['id']),
+                                               borrower_phone_number=borrower[0]['phonenum'],
                                                debt_id=int(debt_id))
 
         return HTTPCodes.OK.value, {}
