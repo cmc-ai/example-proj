@@ -1,16 +1,22 @@
 import os
 import boto3
 from datetime import datetime
+from typing import Dict
 
 from api_controller_base import APIController
 from constants import HTTPCodes, FundingType, PaymentProccessorPaymentStatus, DBDebtStatus, DBJourneyDebtStatus
 from dynamo_models import DebtRecordModel
 from payment_controller import decrypt_payment_link
 from payment_processor.swervepay import SwervePay
+from sms_functions import send_sms
+from payment_controller import DebtPaymentController
 
 LAST_INDEX = -1  # use these indexes to avoid magic numbers in code
 THE_ONLY_INDEX = 0
 PAYMENT_PROCESSOR_NAME = 'SwervePay'
+
+pinoint_client = boto3.client('pinpoint', region_name=os.getenv('AWS_REGION'))
+param_store_client = boto3.client('ssm')
 
 
 class PaymentAPIController(APIController):
@@ -18,6 +24,20 @@ class PaymentAPIController(APIController):
     def __init__(self, **kwargs):
         super(PaymentAPIController, self).__init__(**kwargs)
         self._sp_proc = None
+
+    def _create_and_send_new_payment_link(self, borrower: Dict, debt_id: int):
+        payment_link, exp_minutes = DebtPaymentController(debt_id=debt_id).get_or_create_payment_link(
+            pg_conn=self.db_conn, ssm_client=param_store_client)
+        if not payment_link and exp_minutes:
+            return HTTPCodes.ERROR.value, {'message': 'Can not to get payment link'}
+
+        ssm_origination_number_key = os.getenv('SSM_PINPOINT_ORIGINATION_NUMBER_KEY',
+                                               '/chatbot-dev/dev/pinpoint/origination_number')
+        origination_number = param_store_client.get_parameter(Name=ssm_origination_number_key,
+                                                              WithDecryption=False)['Parameter']['Value']
+
+        send_sms(pinoint_client=pinoint_client, message=payment_link, originationNumber=origination_number,
+                 destinationNumber=borrower['phonenum'], borrower_id=borrower['id'])
 
     def _create_sp_proc(self, debt_id):
         query = f"SELECT id, clientId FROM Debt WHERE id = {debt_id}"
@@ -126,14 +146,15 @@ class PaymentAPIController(APIController):
 
         # add borrower's data
         query = f"""
-                    SELECT b.firstName, b.lastName, b.phonenum, c.organization, d.outstandingBalance
+                    SELECT b.id, b.firstName, b.lastName, b.phonenum, c.organization, d.outstandingBalance
                     FROM Debt d JOIN Client c on d.clientId = c.id JOIN Borrower b on b.debtId = d.id
                     WHERE d.id = {debt_id}
                 """
         borrower = self._map_cols_rows(*self._execute_select(query))
 
         if int(expiration_utc_ts) < datetime.utcnow().timestamp():
-            return HTTPCodes.OK.value, {'message': 'Link Expired', 'borrower': borrower}
+            self._create_and_send_new_payment_link(borrower=borrower[0], debt_id=debt_id)
+            return HTTPCodes.OK.value, {'message': 'Link Expired', 'borrower': borrower[0]}
 
         # get borrower's funding accounts
         query = f"""
