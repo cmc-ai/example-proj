@@ -124,8 +124,16 @@ class PaymentAPIController(APIController):
         debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
         print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
 
+        # add borrower's data
+        query = f"""
+                    SELECT b.firstName, b.lastName, b.phonenum, c.organization, d.outstandingBalance
+                    FROM Debt d JOIN Client c on d.clientId = c.id JOIN Borrower b on b.debtId = d.id
+                    WHERE d.id = {debt_id}
+                """
+        borrower = self._map_cols_rows(*self._execute_select(query))
+
         if int(expiration_utc_ts) < datetime.utcnow().timestamp():
-            return HTTPCodes.OK.value, {'message': 'Link Expired'}
+            return HTTPCodes.OK.value, {'message': 'Link Expired', 'borrower': borrower}
 
         # get borrower's funding accounts
         query = f"""
@@ -134,14 +142,6 @@ class PaymentAPIController(APIController):
             WHERE b.debtId = {debt_id}
         """
         funding_accounts = self._map_cols_rows(*self._execute_select(query))
-
-        # add borrower's data
-        query = f"""
-            SELECT b.firstName, b.lastName, c.organization, d.outstandingBalance
-            FROM Debt d JOIN Client c on d.clientId = c.id JOIN Borrower b on b.debtId = d.id
-            WHERE d.id = {debt_id}
-        """
-        borrower = self._map_cols_rows(*self._execute_select(query))
 
         return HTTPCodes.OK.value, {'funding_accounts': funding_accounts, 'borrower': borrower}
 
