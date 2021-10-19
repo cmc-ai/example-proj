@@ -396,16 +396,14 @@ class PaymentAPIController(APIController):
         debt_id, debt_amount, expiration_utc_ts = decrypted_link.split(':')
         print(f'Processing payment (debt_id, debt_amount, expiration_utc_ts) {debt_id, debt_amount, expiration_utc_ts}')
 
-        borrower_funding_account_id = self.body.get("borrowerFundingAccountId")
-        if not borrower_funding_account_id:
-            return HTTPCodes.ERROR.value, {'message': 'Missing borrower funding account id'}
+        query = f"""
+                    SELECT id, phonenum
+                    FROM Borrower debtId = {debt_id}
+                """
+        borrower = self._map_cols_rows(*self._execute_select(query))
 
-        borrower_phone_number = self.body.get("borrowerPhoneNumber")
-        if not borrower_phone_number:
-            return HTTPCodes.ERROR.value, {'message': 'Missing borrower phone number'}
-
-        self._create_and_send_new_payment_link(borrower_id=int(borrower_funding_account_id),
-                                               borrower_phone_number=borrower_phone_number,
+        self._create_and_send_new_payment_link(borrower_id=int(borrower['id']),
+                                               borrower_phone_number=borrower['phonenum'],
                                                debt_id=int(debt_id))
 
         return HTTPCodes.OK.value, {}
