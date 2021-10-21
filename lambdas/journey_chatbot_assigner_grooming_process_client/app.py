@@ -214,7 +214,7 @@ def create_pinpoint_journey(pinpoint_project_id: str, client_id: int, segment_id
             'Activities': {
                 f'{activity_id}': {
                     'CUSTOM': {
-                        'DeliveryUri': 'arn:aws:lambda:ca-central-1:630063752049:function:chatbot-journay-custom-channel-lambda',
+                        'DeliveryUri': os.getenv("PINPOINT_CUSTOM_LAMBDA_ARN"), # 'arn:aws:lambda:ca-central-1:630063752049:function:chatbot-journay-custom-channel-lambda',
                         'EndpointTypes': ['CUSTOM', 'SMS']
                     }
                 }
