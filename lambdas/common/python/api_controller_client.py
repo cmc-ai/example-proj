@@ -457,7 +457,7 @@ class OtherAPIController(APIController):
             day=1, hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M:%S")
         end_date = self.params.get('endDate') or datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-        portfolio_id = self.params.get('portfolioId', None)
+        portfolio_id = int(self.params.get('portfolioId')) if self.params.get('portfolioId') else None
         print(f"Selected portfolio id: {portfolio_id}")
 
         print("FILTER STRING")
@@ -465,7 +465,7 @@ class OtherAPIController(APIController):
 
         if portfolio_id:
             query = f"""
-                        SELECT status, clientportfolioid, COUNT(*) AS num, SUM(originalbalance) as originalbalance FROM debt
+                        SELECT status, COUNT(*) AS num, SUM(originalbalance) as originalbalance FROM debt
                         WHERE createdate >= '{start_data}' and createdate <= '{end_date}' and clientportfolioid={portfolio_id}  
                         GROUP BY status
                     """
