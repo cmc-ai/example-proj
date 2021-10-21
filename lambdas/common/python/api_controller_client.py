@@ -460,10 +460,6 @@ class OtherAPIController(APIController):
         portfolio_id = int(self.params.get('portfolioId')) if self.params.get('portfolioId') else None
         print(f"Selected portfolio id: {portfolio_id}")
 
-        print("FILTER STRING")
-        print({self._build_filter_string(limit_offset=False)})
-        print(f"Client id: {self._client_id}")
-
         if portfolio_id:
             query = f"""
                         SELECT status, COUNT(*) AS num, SUM(originalbalance) as originalbalance FROM debt
