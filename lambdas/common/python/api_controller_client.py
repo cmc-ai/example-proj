@@ -462,17 +462,19 @@ class OtherAPIController(APIController):
 
         print("FILTER STRING")
         print({self._build_filter_string(limit_offset=False)})
+        print(f"Client id: {self._client_id}")
 
         if portfolio_id:
             query = f"""
                         SELECT status, COUNT(*) AS num, SUM(originalbalance) as originalbalance FROM debt
-                        WHERE createdate >= '{start_data}' and createdate <= '{end_date}' and clientportfolioid={portfolio_id}  
+                        WHERE createdate >= '{start_data}' and createdate <= '{end_date}' and clientportfolioid={portfolio_id} 
+                        and clientid={self._client_id} 
                         GROUP BY status
                     """
         else:
             query = f"""
                     SELECT status, COUNT(*) AS num, SUM(originalbalance) as originalbalance FROM debt
-                    WHERE createdate >= '{start_data}' and createdate <= '{end_date}' 
+                    WHERE createdate >= '{start_data}' and createdate <= '{end_date}' and clientid={self._client_id} 
                     GROUP BY status
                     """
 
@@ -481,7 +483,7 @@ class OtherAPIController(APIController):
 
         query = f"""
                     SELECT COUNT(*) AS num FROM debt
-                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}'
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and clientid={self._client_id} 
                 """
         if portfolio_id:
             query += f" and clientportfolioid={portfolio_id}"
@@ -492,7 +494,8 @@ class OtherAPIController(APIController):
 
         query = f"""
                     SELECT COUNT(*) AS num FROM debt
-                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status = 'inactive'
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and status = 'inactive' 
+                    and clientid={self._client_id} 
                 """
         if portfolio_id:
             query += f" and clientportfolioid={portfolio_id}"
@@ -505,12 +508,13 @@ class OtherAPIController(APIController):
             query = f"""
                     SELECT SUM(amount) AS amount FROM debtpayment AS dp INNER JOIN debt as d on dp.debtid=d.id
                     WHERE dp.paymentDateTimeUTC >= '{start_data}' and dp.paymentDateTimeUTC <= '{end_date}' and
-                    d.clientportfolioid={portfolio_id}
+                    d.clientportfolioid={portfolio_id} and d.clientid={self._client_id} 
                     """
         else:
             query = f"""
-                    SELECT SUM(amount) AS amount FROM debtpayment
-                    WHERE paymentDateTimeUTC >= '{start_data}' and paymentDateTimeUTC <= '{end_date}';
+                    SELECT SUM(amount) AS amount FROM debtpayment AS dp INNER JOIN debt as d on dp.debtid=d.id
+                    WHERE dp.paymentDateTimeUTC >= '{start_data}' and dp.paymentDateTimeUTC <= '{end_date}' 
+                    and d.clientid={self._client_id}
                     """
         collected_amounts = self._map_cols_rows(*self._execute_select(query))
         print(f"collected_amounts: {collected_amounts}")
@@ -518,7 +522,7 @@ class OtherAPIController(APIController):
 
         query = f"""
                     SELECT SUM(outstandingBalance) AS amount FROM debt
-                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}'
+                    WHERE lastupdatedate >= '{start_data}' and lastupdatedate <= '{end_date}' and clientid={self._client_id}
                 """
         if portfolio_id:
             query += f" and clientportfolioid={portfolio_id}"
