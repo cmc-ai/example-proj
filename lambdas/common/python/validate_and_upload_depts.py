@@ -31,8 +31,8 @@ def validate_line(line: str) -> Tuple[Optional[bool], str]:
 
 
 def upload(body: Dict, upload_s3_path: str):
-    print("==========")
-    print(f"event: {body}")
+    print(f"Upload body: {body}")
+    print(f"Upload S3 path: {upload_s3_path}")
 
     with smart_open.smart_open(upload_s3_path, 'w') as s3_out:
         for line in split_csv_lines(body):
