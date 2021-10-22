@@ -21,7 +21,7 @@ def is_num_value(value: str) -> bool:
 
 
 def validate_line(line: str) -> Tuple[Optional[bool], str]:
-    columns = line.replace(" ", "").split(",")
+    columns = line.split(",")
     if len(columns) != 11:
         return False, "Incorrect columns number in a file"
     for i, c in enumerate(columns):
