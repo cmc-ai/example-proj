@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 
 from api_controller_base import APIController
+import validate_and_upload_depts
 from constants import HTTPCodes
 from dynamo_models import BorrowerMessageModel
 from helper_functions import ts_to_utc_dt
@@ -96,6 +97,12 @@ class DebtAPIController(APIController):
             'data': [groupped_debts[debt_id] for debt_id in groupped_debts],
             'pagination': {'totalCount': total_count}
         }
+
+    def validate_and_upload(self):
+        s3_bucket = os.getenv('CLIENTS_S3_BUCKET_NAME')
+        upload_file_key = f"debts/{self._client_id}/{self._client_portfolio_id}/{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}.csv"
+        validate_and_upload_depts.upload(body=self.body,
+                                         upload_s3_path=os.path.join("s3://", s3_bucket, upload_file_key))
 
     def upload(self):
         if not self._client_id:
