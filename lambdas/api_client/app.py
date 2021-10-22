@@ -66,6 +66,8 @@ def lambda_handler(event, context):
         controller = DebtAPIController(**c_params)
         if http_method == 'GET':
             response = controller.get_debt()
+        if http_method == 'POST':
+            response = controller.validate_and_upload()
     elif path == '/api/debts/upload':
         controller = DebtAPIController(**c_params)
         if http_method == 'GET':
