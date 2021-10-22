@@ -101,8 +101,9 @@ class DebtAPIController(APIController):
     def validate_and_upload(self):
         s3_bucket = os.getenv('CLIENTS_S3_BUCKET_NAME')
         upload_file_key = f"debts/{self._client_id}/{self._client_portfolio_id}/{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}.csv"
-        validate_and_upload_depts.upload(body=self.body,
-                                         upload_s3_path=os.path.join("s3://", s3_bucket, upload_file_key))
+        code, rsp = validate_and_upload_depts.upload(body=self.body,
+                                                     upload_s3_path=os.path.join("s3://", s3_bucket, upload_file_key))
+        return code, rsp
 
     def upload(self):
         if not self._client_id:
