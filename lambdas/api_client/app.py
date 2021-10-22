@@ -33,7 +33,13 @@ def lambda_handler(event, context):
     path = event.get('path').rstrip('/')
     http_method = event.get('httpMethod')
     headers = event.get('headers')
-    body = json.loads(event.get('body')) if type(event.get('body')) == str else event.get('body')
+    body = event.get('body')
+    print(f"Received body: {body}")
+    if type(body) == str:
+        try:
+            body = json.loads(body)
+        except Exception as e:
+            print("Can not parse JSON body: {}")
 
     if not headers or not headers.get('Authorization'):
         return build_response({'message': 'No auth header found'}, HTTPCodes.UNAUTHORIZED.value)
