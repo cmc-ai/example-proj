@@ -34,7 +34,7 @@ def lambda_handler(event, context):
     http_method = event.get('httpMethod')
     headers = event.get('headers')
     body = event.get('body')
-    print(f"Received body: {body}")
+    # print(f"Received body: {body}")
     if type(body) == str:
         try:
             body = json.loads(body)
