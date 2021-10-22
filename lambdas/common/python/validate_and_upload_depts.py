@@ -5,6 +5,7 @@ import smart_open
 from constants import HTTPCodes
 
 NUM_COLUMNS = [0, 1, 2, 3, 7]
+EXPECTED_COLUMN_COUNT = 11
 
 
 def split_csv_lines(data: str) -> Generator:
@@ -22,8 +23,9 @@ def is_num_value(value: str) -> bool:
 
 def validate_line(line: str) -> Tuple[Optional[bool], str]:
     columns = line.split(",")
-    if len(columns) != 11:
-        return False, "Incorrect columns number in a file"
+    if len(columns) != EXPECTED_COLUMN_COUNT:
+        print(f"Incorrect line: {line}")
+        return False, f"Incorrect columns number in a line. Expected: {EXPECTED_COLUMN_COUNT} found in a line: {len(columns)}"
     for i, c in enumerate(columns):
         if i in NUM_COLUMNS and not is_num_value(c):
             return False, f"Column {i} should have a numeric value"
