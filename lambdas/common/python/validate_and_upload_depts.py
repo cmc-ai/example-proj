@@ -37,6 +37,8 @@ def upload(body: Dict, upload_s3_path: str):
 
     with smart_open.smart_open(upload_s3_path, 'w') as s3_out:
         for line in split_csv_lines(body):
+            if not line:
+                continue
             is_valid, err_str = validate_line(line=line)
             if not is_valid:
                 print(f"Incorrect CSV file. {err_str}")
