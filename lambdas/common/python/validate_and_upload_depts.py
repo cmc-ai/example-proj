@@ -39,6 +39,7 @@ def upload(body: Dict, upload_s3_path: str):
         for line in split_csv_lines(body):
             if not line.replace('\r', '').replace('\n', ''):
                 continue
+            line = line.replace('\r', '')
             is_valid, err_str = validate_line(line=line)
             if not is_valid:
                 print(f"Incorrect CSV file. {err_str}")
