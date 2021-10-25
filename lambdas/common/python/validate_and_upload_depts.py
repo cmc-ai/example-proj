@@ -33,13 +33,13 @@ def validate_line(line: str) -> Tuple[Optional[bool], str]:
 
 
 def upload(body: Dict, upload_s3_path: str):
-    # print(f"Upload body: {body}")
     print(f"Upload S3 path: {upload_s3_path}")
 
     with smart_open.smart_open(upload_s3_path, 'w') as s3_out:
         for line in split_csv_lines(body):
             is_valid, err_str = validate_line(line=line)
             if not is_valid:
+                print(f"Incorrect CSV file. {err_str}")
                 return HTTPCodes.ERROR.value, {"message": f"Incorrect CSV file. {err_str}"}
             s3_out.write(f"{line}\n")
 
