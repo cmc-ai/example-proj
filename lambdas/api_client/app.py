@@ -128,4 +128,6 @@ def lambda_handler(event, context):
         if http_method == 'GET':
             code, response = controller.get_or_create_payment_link()
 
+    print(f"Response: {response}")
+    print(f"Code: {code}")
     return build_response(response, code)
