@@ -7,6 +7,7 @@ import validate_and_upload_depts
 from constants import HTTPCodes
 from dynamo_models import BorrowerMessageModel
 from helper_functions import ts_to_utc_dt
+from contextlib import closing
 
 S3_PRESIGNED_URL_EXPIRATION_SEC = 3600
 LAST_INDEX = -1  # use these indexes to avoid magic numbers in code
@@ -279,8 +280,29 @@ class ClientAPIController(APIController):
 
         query = f"""
             INSERT INTO ClientPortfolio (clientId, portfolioName, createDate, lastUpdateDate )
-            VALUES ({self._client_id}, '{portfolio_name}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+            VALUES ({self._client_id}, '{portfolio_name}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id;
         """
+        # self._execute_insert(query)
+
+        print(f"Query: {query}")
+
+        client_portfolio_id = None
+        with closing(self.db_conn.cursor()) as cursor:
+            row = cursor.execute(query).fetchone()
+            self.db_conn.commit()
+            client_portfolio_id = row[0]
+            print(f"Created client portfolio entry with id: {client_portfolio_id}")
+
+        if not client_portfolio_id:
+            print("No client portfolio id")
+            return HTTPCodes.ERROR.value, {'message': "Could not create client portfolio"}
+
+        query = f"""
+            INSERT INTO Clientconfiguration(
+            clientportfolioid, createdate, lastupdatedate)
+            VALUES ({client_portfolio_id}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        """
+        print(f"Query: {query}")
         self._execute_insert(query)
 
         return HTTPCodes.CREATED.value, {}
