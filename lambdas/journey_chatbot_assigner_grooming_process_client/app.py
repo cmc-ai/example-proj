@@ -93,8 +93,8 @@ def get_borrower_items(client_id: int, journey_process_statuses: Dict[int, Journ
     conn = create_db_connection()
     query = f"""
                 with a as (
-                    select clientportfolioid,updateSegmentInterval, createdate from public.clientconfiguration WHERE clientportfolioid=90
-                    order by createdate DESC limit 1
+                    select DISTINCT ON (clientportfolioid) clientportfolioid, updateSegmentInterval from public.clientconfiguration
+                    group by clientportfolioid,updateSegmentInterval, lastupdatedate order by clientportfolioid, lastupdatedate DESC
                 )
 
                 select d.id as debt_id, b.id, b.channeltype, b.phonenum, b.country, b.firstname, b.lastname, cp.id as portfolio_id, cc.updateSegmentInterval from public.Debt as d
