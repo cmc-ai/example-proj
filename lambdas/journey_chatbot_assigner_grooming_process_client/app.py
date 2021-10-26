@@ -310,10 +310,9 @@ def pinpoint_create_import_job(s3_path: str, client_id: int, pinpoint_project_id
 
 
 def set_in_journey_status_in_rds(debt_id):
-    print("PROCESSED_DEBTS_ID", PROCESSED_DEBTS_ID)
     conn = create_db_connection()
     with closing(conn.cursor()) as cursor:
-        query = f"UPDATE public.debt SET status={DBDebtStatus.in_journey.value} WHERE id = {debt_id};"
+        query = f"UPDATE public.debt SET status='{DBDebtStatus.in_journey.value}' WHERE id = {debt_id};"
         print(f"Query: {query}")
         cursor.execute(query)
         conn.commit()
