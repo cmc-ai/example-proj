@@ -313,7 +313,7 @@ def set_in_journey_status_in_rds(debt_id):
     print("PROCESSED_DEBTS_ID", PROCESSED_DEBTS_ID)
     conn = create_db_connection()
     with closing(conn.cursor()) as cursor:
-        cursor.executemany(f"UPDATE public.debt SET status={DBDebtStatus.in_journey.value} WHERE id= {debt_id};")
+        cursor.execute(f"UPDATE public.debt SET status={DBDebtStatus.in_journey.value} WHERE id= {debt_id};")
         conn.commit()
 
 
