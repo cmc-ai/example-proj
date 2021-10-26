@@ -77,7 +77,9 @@ def update_or_create_journey_process_status(client_id: int, portfolio_id: int, s
 
 def is_record_need_to_process(record: Dict, journey_process_statuses: Dict[int, JourneyProcessStatusModel]) -> bool:
     # If we already added this portfolio_id to process list return True
-    if record['portfolio_id'] in PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO:
+    print(f"Is record: {record} need to process")
+    if record['portfolio_id'] in journey_process_statuses:
+        print(f"Record {record['portfolio_id']} found in {journey_process_statuses}")
         return True
 
     if (record['portfolio_id'] not in journey_process_statuses
@@ -103,6 +105,7 @@ def get_borrower_items(client_id: int, journey_process_statuses: Dict[int, Journ
                 join public.Borrower as b on b.debtid = d.id
                 WHERE d.clientid={client_id} and d.status='{DBDebtStatus.waiting_journey_assignment.value}';
             """
+    print(f"Query: {query}")
     with closing(conn.cursor()) as cursor:
         # Fetch SQL data
         rows = cursor.execute(query).fetchall()
