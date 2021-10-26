@@ -92,12 +92,17 @@ def is_record_need_to_process(record: Dict, journey_process_statuses: Dict[int, 
 def get_borrower_items(client_id: int, journey_process_statuses: Dict[int, JourneyProcessStatusModel]) -> List[Dict]:
     conn = create_db_connection()
     query = f"""
-                    select d.id as debt_id, b.id, b.channeltype, b.phonenum, b.country, b.firstname, b.lastname, cp.id as portfolio_id, cc.updateSegmentInterval from public.Debt as d
-                    join public.ClientPortfolio cp on d.clientportfolioid = cp.id
-                    join public.clientconfiguration cc on cc.clientportfolioid = cp.id
-                    join public.Borrower as b on b.debtid = d.id
-                    WHERE d.clientid={client_id} and d.status='{DBDebtStatus.waiting_journey_assignment.value}';
-                """
+                with a as (
+                    select clientportfolioid,updateSegmentInterval, createdate from public.clientconfiguration WHERE clientportfolioid=90
+                    order by createdate DESC limit 1
+                )
+
+                select d.id as debt_id, b.id, b.channeltype, b.phonenum, b.country, b.firstname, b.lastname, cp.id as portfolio_id, cc.updateSegmentInterval from public.Debt as d
+                join public.ClientPortfolio cp on d.clientportfolioid = cp.id
+                join a cc on cc.clientportfolioid = cp.id
+                join public.Borrower as b on b.debtid = d.id
+                WHERE d.clientid={client_id} and d.status='{DBDebtStatus.waiting_journey_assignment.value}';
+            """
     with closing(conn.cursor()) as cursor:
         # Fetch SQL data
         rows = cursor.execute(query).fetchall()
@@ -325,6 +330,7 @@ def lambda_handler(event, context):
     print(f"Run journey process update for {client_id} ")
     print("Get journey process statuses")
     journey_process_statuses = get_journey_process_statuses(client_id=client_id)
+
     print("Get borrower statuses")
     borrower_items = get_borrower_items(client_id=client_id, journey_process_statuses=journey_process_statuses)
     print(f"Found {len(borrower_items)} borrower_items records")
