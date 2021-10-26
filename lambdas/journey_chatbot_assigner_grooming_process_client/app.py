@@ -306,12 +306,11 @@ def pinpoint_create_import_job(s3_path: str, client_id: int, pinpoint_project_id
     return ret
 
 
-def set_in_journey_status_in_rds():
+def set_in_journey_status_in_rds(debt_id):
     print("PROCESSED_DEBTS_ID", PROCESSED_DEBTS_ID)
     conn = create_db_connection()
     with closing(conn.cursor()) as cursor:
-        cursor.executemany("UPDATE public.debt SET status=%s WHERE id= %s;",
-                           [(DBDebtStatus.in_journey.value, i) for i in PROCESSED_DEBTS_ID])
+        cursor.executemany(f"UPDATE public.debt SET status={DBDebtStatus.in_journey.value} WHERE id= {debt_id};")
         conn.commit()
 
 
@@ -353,15 +352,21 @@ def lambda_handler(event, context):
                     segment_id=segment_id)
 
                 for debt_id in PROCESSED_DEBTS_ID:
-                    journey_entry_activity_id = get_or_create_journey_entry_activity(journey_id=pinpoint_journey_id,
-                                                                                     debt_id=debt_id)
+                    selected_segment = get_segment_by_name(segment_name=f"segment_{client_id}",
+                                                           pinpoint_project_id=os.getenv("AWS_PINPOINT_PROJECT_ID"))
+                    print(f"Selected segment: {selected_segment}")
+                    if selected_segment:
+                        journey_entry_activity_id = get_or_create_journey_entry_activity(journey_id=pinpoint_journey_id,
+                                                                                         debt_id=debt_id)
+
+                        print(f"Set in journey status in RDS for debt id: {debt_id}")
+                        set_in_journey_status_in_rds(debt_id=debt_id)
+                    else:
+                        f"Could not find segment with name: segment_{client_id}. Skip journey creation"
 
             except Exception as e:
                 handle_fail(journey_process_statuses=journey_process_statuses)
                 raise e
-
-        print("Set in journey status in RDS")
-        set_in_journey_status_in_rds()
 
         print("Set success status to DynamoDB")
         for portfolio_id in PROCESSED_JOURNEY_PROCESS_STATUSES_PORTFOLIO:
