@@ -36,7 +36,7 @@ def find_debt_by_number(origination_number: str):
     conn = get_or_create_pg_connection(pg_conn, rds_client)
 
     query = f"""
-            SELECT b.debtId, b.id, jea.journeyId
+            SELECT b.debtId, b.id, jea.journeyawsId
             FROM Debt d JOIN Borrower b on d.id = b.debtId
             JOIN JourneyEntryActivity jea on d.id = jea.debtId
             where b.phoneNum = '{origination_number}'
