@@ -248,6 +248,7 @@ def call_chatbot(response_msg_and_session_state):
 
 def lambda_handler(event, context):
     for record in event['Records']:
+        print(f'Queue record: {record}')
         response_msg_and_session_state = json.loads(record['body'])
 
         debt_record = find_or_create_debt_state(response_msg_and_session_state.copy())
