@@ -4,7 +4,7 @@ import re
 import smart_open
 from constants import HTTPCodes
 
-NUM_COLUMNS = [0, 1, 2, 3, 7]
+NUM_COLUMNS = [0, 1, 2, 3]
 EXPECTED_COLUMN_COUNT = 11
 
 
