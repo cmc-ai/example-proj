@@ -35,11 +35,12 @@ def find_debt_by_number(origination_number: str):
     global rds_client
     conn = get_or_create_pg_connection(pg_conn, rds_client)
 
+    origination_number_no_plus = origination_number.replace('+', '')
     query = f"""
             SELECT b.debtId, b.id, jea.journeyawsId
             FROM Debt d JOIN Borrower b on d.id = b.debtId
             JOIN JourneyEntryActivity jea on d.id = jea.debtId
-            where b.phoneNum = '{origination_number}'
+            where b.phoneNum in ('{origination_number}', '{origination_number_no_plus}')
             and jea.exitDateTimeUTC IS NULL
         """
     cursor = conn.cursor()
