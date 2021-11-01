@@ -136,4 +136,5 @@ def lambda_handler(event, context):
     else:
         response = process_fallback(event)
 
+    print(f'Intent Processor response: {response}')
     return response
