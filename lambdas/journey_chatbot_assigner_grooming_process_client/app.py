@@ -128,7 +128,6 @@ def get_borrower_items(client_id: int, journey_process_statuses: Dict[int, Journ
 
                     data.append(
                         {
-                            "Id": int(time.time() * 1000),  # record['id'],
                             "ChannelType": record['channeltype'],
                             "Address": record['phonenum'],
                             "Location": {"Country": record['country']},
