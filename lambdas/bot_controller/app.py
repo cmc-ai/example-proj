@@ -95,6 +95,7 @@ def get_more_debt_details(response_msg_and_session_state):
                 WHERE d.id = {response_msg_and_session_state.get('debt_id')}
                 AND b.phoneNum = '{response_msg_and_session_state.get('originationNumber')}'
                 """
+    print(f'Executing query: {query}')
     cursor = conn.cursor()
     rows = cursor.execute(query).fetchall()
     cursor.close()
