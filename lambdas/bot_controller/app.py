@@ -89,11 +89,14 @@ def get_more_debt_details(response_msg_and_session_state):
     global rds_client
     conn = get_or_create_pg_connection(pg_conn, rds_client)
 
+    origination_number = response_msg_and_session_state.get('originationNumber')
+    origination_number_no_plus = origination_number.replace('+', '')
+
     query = f"""
                 SELECT b.firstName, b.lastName, c.organization, d.outstandingBalance
                 FROM Debt d JOIN Client c on d.clientId = c.id JOIN Borrower b on b.debtId = d.id
                 WHERE d.id = {response_msg_and_session_state.get('debt_id')}
-                AND b.phoneNum = '{response_msg_and_session_state.get('originationNumber')}'
+                AND b.phoneNum in ('{origination_number}', '{origination_number_no_plus}')
                 """
     print(f'Executing query: {query}')
     cursor = conn.cursor()
