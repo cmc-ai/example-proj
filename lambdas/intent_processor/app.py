@@ -137,4 +137,32 @@ def lambda_handler(event, context):
         response = process_fallback(event)
 
     print(f'Intent Processor response: {response}')
+    """
+    {'sessionState': {'activeContexts': [{'timeToLive': {'turnsToLive': 0, 
+                                                        'timeToLiveInSeconds': 86400
+                                                        }, 
+                                            'name': 'StartConversation', 
+                                            'contextAttributes': {}
+                                            }
+                                        ], 
+                        'intent': {'slots': {}, 
+                                    'confirmationState': 'None', 
+                                    'name': 'InitialPositiveIntent', 
+                                    'state': 'Fulfilled'
+                                    }, 
+                        'originatingRequestId': 'f7e9ca1c-995b-4be0-bbfd-e5319157470c', 
+                        'dialogAction': {'type': 'Close'}
+                        }, 
+    'messages': [{'contentType': 'PlainText', 
+                    'content': '_START_CONVERSATION_'
+                    }
+                ]
+    }
+    """
+    if response.get('sessionState'):
+        old_active_contexts = response.get('sessionState', {}).get('activeContexts', [])
+        active_contexts = [ctx for ctx in old_active_contexts if ctx.get('timeToLive', {}).get('turnsToLive', 0) > 0]
+        response['sessionState'] = active_contexts
+
+    print(f'UPD Intent Processor response: {response}')
     return response
