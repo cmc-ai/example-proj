@@ -162,7 +162,7 @@ def lambda_handler(event, context):
     if response.get('sessionState'):
         old_active_contexts = response.get('sessionState', {}).get('activeContexts', [])
         active_contexts = [ctx for ctx in old_active_contexts if ctx.get('timeToLive', {}).get('turnsToLive', 0) > 0]
-        response['activeContexts'] = active_contexts
+        response['sessionState']['activeContexts'] = active_contexts
 
     print(f'UPD Intent Processor response: {response}')
     return response
